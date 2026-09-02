@@ -31,17 +31,51 @@ com.nemblex
 ## Requisitos previos
 
 - JDK 21
-- PostgreSQL en `localhost:5432` con una base de datos llamada `nemblex` (y opcionalmente `nemblex_test` para el perfil de test)
+- Docker + Docker Compose (para levantar PostgreSQL con pgvector en local), o una instancia propia de PostgreSQL en `localhost:5432` con una base de datos llamada `nemblex` (y opcionalmente `nemblex_test` para el perfil de test)
 - No necesitas tener Maven instalado: el proyecto incluye Maven Wrapper (`mvnw` / `mvnw.cmd`)
+
+## Base de datos (PostgreSQL + pgvector) con Docker Compose
+
+En la **raíz del repositorio** (mismo nivel que `backend/` y `frontend/`, ya que es infraestructura compartida) hay
+un `docker-compose.yml` que levanta PostgreSQL con la extensión `pgvector` (necesaria para el RAG del agente de IA).
+`init.sql`, también en la raíz, se ejecuta en la primera inicialización del volumen: habilita la extensión y crea el
+esquema inicial (`app_user`, `category`, `ticket`, `audit_log` con sus constraints e índices).
+
+Ejecuta los comandos de `docker compose` desde la raíz del repositorio:
+
+```bash
+cd ..            # desde backend/ hasta la raíz del repo
+docker compose up -d
+```
+
+Esto expone Postgres en `localhost:5432` con:
+
+- Base de datos: `nemblex`
+- Usuario: `nemblex`
+- Password: `nemblex_dev_password` (credencial de desarrollo local, no usar en otros entornos)
+
+Para verificar que el contenedor está saludable (también desde la raíz del repo):
+
+```bash
+docker compose ps
+```
+
+Para pararlo (conservando los datos en el volumen `nemblex_pgdata`):
+
+```bash
+docker compose down
+```
+
+> Si cambias el esquema de `init.sql` y necesitas re-ejecutarlo, elimina el volumen: `docker compose down -v`.
 
 ## Configuración
 
-1. Copia `.env.example` a `.env` y completa los valores:
+1. Copia `.env.example` a `.env` y completa los valores (por defecto ya coinciden con el `docker-compose.yml`):
 
    ```
    DB_URL=jdbc:postgresql://localhost:5432/nemblex
-   DB_USER=tu_usuario
-   DB_PASSWORD=tu_password
+   DB_USER=nemblex
+   DB_PASSWORD=nemblex_dev_password
    SPRING_PROFILES_ACTIVE=dev
    GEMINI_API_KEY=tu_api_key
    ```
@@ -69,8 +103,8 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 ```
 
 > Los tests que arrancan el contexto completo de Spring (`@SpringBootTest`) requieren una instancia de PostgreSQL
-> accesible y las variables `DB_USER`/`DB_PASSWORD` configuradas. Para compilar y empaquetar sin necesidad de una
-> base de datos activa, usa `./mvnw.cmd clean install -DskipTests`.
+> accesible y las variables `DB_USER`/`DB_PASSWORD` configuradas (`docker compose up -d` la deja lista). Para
+> compilar y empaquetar sin necesidad de una base de datos activa, usa `./mvnw.cmd clean install -DskipTests`.
 
 ## Perfiles
 

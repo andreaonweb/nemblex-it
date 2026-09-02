@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: nemblex-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nemblex
+      POSTGRES_USER: nemblex
+      POSTGRES_PASSWORD: nemblex_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - nemblex_pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nemblex -d nemblex"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  nemblex_pgdata:
