@@ -13,6 +13,13 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
+app:
+  jwt:
+    secret: ${JWT_SECRET:nemblex-local-dev-0f3b9c1a7e5d4826b1f0a9c8d7e6f5a4b3c2d1e0aa11bb22}
+    expiration-ms: 86400000
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
 ---
 spring:
   config:
@@ -20,7 +27,7 @@ spring:
       on-profile: dev
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/nemblex}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/nemblex}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -45,7 +52,7 @@ spring:
       on-profile: test
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/nemblex_test}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/nemblex_test}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver

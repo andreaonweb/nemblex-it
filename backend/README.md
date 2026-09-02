@@ -31,7 +31,7 @@ com.nemblex
 ## Requisitos previos
 
 - JDK 21
-- Docker + Docker Compose (para levantar PostgreSQL con pgvector en local), o una instancia propia de PostgreSQL en `localhost:5432` con una base de datos llamada `nemblex` (y opcionalmente `nemblex_test` para el perfil de test)
+- Docker + Docker Compose (para levantar PostgreSQL con pgvector en local), o una instancia propia de PostgreSQL en `localhost:5433` con una base de datos llamada `nemblex` (y opcionalmente `nemblex_test` para el perfil de test)
 - No necesitas tener Maven instalado: el proyecto incluye Maven Wrapper (`mvnw` / `mvnw.cmd`)
 
 ## Base de datos (PostgreSQL + pgvector) con Docker Compose
@@ -48,11 +48,14 @@ cd ..            # desde backend/ hasta la raíz del repo
 docker compose up -d
 ```
 
-Esto expone Postgres en `localhost:5432` con:
+Esto expone Postgres en **`localhost:5433`** con:
 
 - Base de datos: `nemblex`
 - Usuario: `nemblex`
 - Password: `nemblex_dev_password` (credencial de desarrollo local, no usar en otros entornos)
+
+> Se usa el puerto **5433** en el host (mapeado al 5432 del contenedor) para no chocar con una instalación
+> local de PostgreSQL que ya ocupe el 5432. El `DB_URL` de `.env` / `application.yml` ya apunta al 5433.
 
 Para verificar que el contenedor está saludable (también desde la raíz del repo):
 
@@ -73,7 +76,7 @@ docker compose down
 1. Copia `.env.example` a `.env` y completa los valores (por defecto ya coinciden con el `docker-compose.yml`):
 
    ```
-   DB_URL=jdbc:postgresql://localhost:5432/nemblex
+   DB_URL=jdbc:postgresql://localhost:5433/nemblex
    DB_USER=nemblex
    DB_PASSWORD=nemblex_dev_password
    SPRING_PROFILES_ACTIVE=dev

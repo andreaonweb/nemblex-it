@@ -8,7 +8,8 @@ services:
       POSTGRES_USER: nemblex
       POSTGRES_PASSWORD: nemblex_dev_password
     ports:
-      - "5432:5432"
+      # 5433 en el host para no chocar con una instalacion local de PostgreSQL en 5432
+      - "5433:5432"
     volumes:
       - nemblex_pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
