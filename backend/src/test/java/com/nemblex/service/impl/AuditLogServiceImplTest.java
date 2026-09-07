@@ -223,4 +223,77 @@ class AuditLogServiceImplTest {
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(userRepository, never()).findById(anyLong());
     }
+
+    @Test
+    void resolveDirectly_shouldResolveTicketAndCreateApprovedLog_whenTicketActive() {
+        // Arrange
+        AuditLogRequest dto = AuditLogRequest.builder().ticketId(1L).action("REINICIO_SERVICIO").build();
+        Ticket ticket = Ticket.builder().id(1L).status(TicketStatus.IN_PROGRESS).build();
+        AppUser technician = AppUser.builder().id(3L).name("Ana Torres").build();
+        AuditLog mappedEntity = new AuditLog();
+        mappedEntity.setAction(dto.getAction());
+        AuditLogResponse expectedResponse = AuditLogResponse.builder()
+                .id(20L)
+                .resultStatus(AuditResultStatus.APPROVED)
+                .approvedByName("Ana Torres")
+                .build();
+
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+        when(userRepository.findById(3L)).thenReturn(Optional.of(technician));
+        when(auditLogMapper.toEntity(dto)).thenReturn(mappedEntity);
+        when(ticketRepository.saveAndFlush(ticket)).thenReturn(ticket);
+        when(auditLogRepository.saveAndFlush(any(AuditLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(auditLogMapper.toResponse(mappedEntity)).thenReturn(expectedResponse);
+
+        // Act
+        AuditLogResponse result = auditLogService.resolveDirectly(dto, 3L);
+
+        // Assert
+        assertThat(result).isEqualTo(expectedResponse);
+        assertThat(mappedEntity.getResultStatus()).isEqualTo(AuditResultStatus.APPROVED);
+        assertThat(mappedEntity.getApprovedBy()).isEqualTo(technician);
+        assertThat(mappedEntity.getTicket()).isEqualTo(ticket);
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.RESOLVED);
+        verify(ticketRepository).saveAndFlush(ticket);
+    }
+
+    @Test
+    void resolveDirectly_shouldThrowResourceNotFoundException_whenTicketNotExists() {
+        // Arrange
+        AuditLogRequest dto = AuditLogRequest.builder().ticketId(99L).action("REINICIO_SERVICIO").build();
+        when(ticketRepository.findById(99L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> auditLogService.resolveDirectly(dto, 3L))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(auditLogRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void resolveDirectly_shouldThrowBadRequestException_whenTicketAlreadyResolved() {
+        // Arrange
+        AuditLogRequest dto = AuditLogRequest.builder().ticketId(1L).action("REINICIO_SERVICIO").build();
+        Ticket ticket = Ticket.builder().id(1L).status(TicketStatus.RESOLVED).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+        // Act & Assert
+        assertThatThrownBy(() -> auditLogService.resolveDirectly(dto, 3L))
+                .isInstanceOf(BadRequestException.class);
+        verify(auditLogRepository, never()).saveAndFlush(any());
+        verify(ticketRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void resolveDirectly_shouldThrowBadRequestException_whenTicketAlreadyClosed() {
+        // Arrange
+        AuditLogRequest dto = AuditLogRequest.builder().ticketId(1L).action("REINICIO_SERVICIO").build();
+        Ticket ticket = Ticket.builder().id(1L).status(TicketStatus.CLOSED).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+        // Act & Assert
+        assertThatThrownBy(() -> auditLogService.resolveDirectly(dto, 3L))
+                .isInstanceOf(BadRequestException.class);
+        verify(auditLogRepository, never()).saveAndFlush(any());
+        verify(ticketRepository, never()).saveAndFlush(any());
+    }
 }

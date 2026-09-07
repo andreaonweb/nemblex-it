@@ -97,4 +97,27 @@ public class AuditLogServiceImpl implements AuditLogService {
 
         return auditLogMapper.toResponse(auditLogRepository.saveAndFlush(auditLog));
     }
+
+    @Override
+    public AuditLogResponse resolveDirectly(AuditLogRequest dto, Long technicianId) {
+        Ticket ticket = ticketRepository.findById(dto.getTicketId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", dto.getTicketId()));
+        if (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED) {
+            throw new BadRequestException(
+                    "Ticket " + ticket.getId() + " is already " + ticket.getStatus() + ", nothing to resolve");
+        }
+
+        AppUser technician = userRepository.findById(technicianId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", technicianId));
+
+        AuditLog auditLog = auditLogMapper.toEntity(dto);
+        auditLog.setTicket(ticket);
+        auditLog.setResultStatus(AuditResultStatus.APPROVED);
+        auditLog.setApprovedBy(technician);
+
+        ticket.setStatus(TicketStatus.RESOLVED);
+        ticketRepository.saveAndFlush(ticket);
+
+        return auditLogMapper.toResponse(auditLogRepository.saveAndFlush(auditLog));
+    }
 }

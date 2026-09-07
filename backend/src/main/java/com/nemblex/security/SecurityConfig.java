@@ -55,6 +55,8 @@ public class SecurityConfig {
                             .hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/audit-logs")
                             .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/audit-logs/resolve-now")
+                            .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/audit-logs/pending")
                             .hasAnyRole("SUPERVISOR", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/audit-logs/ticket/**")

@@ -42,6 +42,16 @@ public class AuditLogController {
                 .body(created);
     }
 
+    @Operation(summary = "Resuelve una incidencia de inmediato con una accion manual del tecnico, sin pasar por aprobacion")
+    @PostMapping("/resolve-now")
+    public ResponseEntity<AuditLogResponse> resolveNow(@Valid @RequestBody AuditLogRequest request,
+                                                        Authentication authentication) {
+        AuditLogResponse resolved = auditLogService.resolveDirectly(request, currentUserId(authentication));
+        return ResponseEntity
+                .created(URI.create("/api/audit-logs/" + resolved.getId()))
+                .body(resolved);
+    }
+
     @Operation(summary = "Lista los registros de auditoria de una incidencia concreta")
     @GetMapping("/ticket/{ticketId}")
     public ResponseEntity<List<AuditLogResponse>> getByTicket(@PathVariable Long ticketId) {
