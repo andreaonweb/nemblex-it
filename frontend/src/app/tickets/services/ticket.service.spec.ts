@@ -1,0 +1,51 @@
+import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+
+import { TicketService } from './ticket.service';
+import { Ticket } from '../models/ticket.models';
+import { environment } from '../../../environments/environment';
+
+describe('TicketService', () => {
+  let service: TicketService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()]
+    });
+    service = TestBed.inject(TicketService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => httpMock.verify());
+
+  it('fetches all tickets from GET /api/tickets', () => {
+    const mockTickets: Ticket[] = [
+      {
+        id: 1,
+        title: 'VPN caída',
+        description: 'desc',
+        status: 'NEW',
+        priority: 'HIGH',
+        categoryId: null,
+        categoryName: null,
+        createdById: 1,
+        createdByName: 'Ana Torres',
+        assignedToId: null,
+        assignedToName: null,
+        createdAt: '2026-09-07T10:00:00',
+        updatedAt: '2026-09-07T10:00:00'
+      }
+    ];
+
+    let result: Ticket[] | undefined;
+    service.list().subscribe((tickets) => (result = tickets));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tickets`);
+    expect(req.request.method).toBe('GET');
+    req.flush(mockTickets);
+
+    expect(result).toEqual(mockTickets);
+  });
+});

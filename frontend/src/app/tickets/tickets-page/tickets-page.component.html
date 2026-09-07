@@ -1,0 +1,87 @@
+<section class="kpis">
+  <mat-card class="kpi-card">
+    <span class="kpi-card__label">Abiertas</span>
+    <strong class="kpi-card__value">{{ kpis().abiertas }}</strong>
+  </mat-card>
+  <mat-card class="kpi-card">
+    <span class="kpi-card__label">Críticas</span>
+    <strong class="kpi-card__value kpi-card__value--critical">{{ kpis().criticas }}</strong>
+  </mat-card>
+</section>
+
+<section class="filters">
+  <mat-form-field appearance="outline" class="filters__field">
+    <mat-label>Estado</mat-label>
+    <mat-select [value]="statusFilter()" (selectionChange)="statusFilter.set($event.value)">
+      @for (option of statusOptions; track option) {
+        <mat-option [value]="option">
+          {{ option === 'Todos' ? 'Todos' : statusLabels[option] }} ({{ statusCount(option) }})
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filters__field">
+    <mat-label>Prioridad</mat-label>
+    <mat-select [value]="priorityFilter()" (selectionChange)="priorityFilter.set($event.value)">
+      @for (option of priorityOptions; track option) {
+        <mat-option [value]="option">{{ option === 'Todas' ? 'Todas' : priorityLabels[option] }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filters__field filters__field--search">
+    <mat-label>Buscar</mat-label>
+    <input matInput [value]="search()" (input)="search.set($any($event.target).value)" placeholder="Asunto o solicitante…" />
+  </mat-form-field>
+</section>
+
+@if (loading()) {
+  <div class="state-message"><mat-spinner diameter="28" /></div>
+} @else if (error()) {
+  <p class="state-message state-message--error">{{ error() }}</p>
+} @else {
+  <p class="summary">
+    {{ filteredTickets().length }} {{ filteredTickets().length === 1 ? 'incidencia visible' : 'incidencias visibles' }}
+    de {{ tickets().length }}
+  </p>
+
+  <table class="tickets-table">
+    <thead>
+      <tr>
+        <th scope="col">ID</th>
+        <th scope="col">Asunto</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Prioridad</th>
+        <th scope="col">Categoría</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (t of filteredTickets(); track t.id) {
+        <tr>
+          <td>#{{ t.id }}</td>
+          <td>
+            <span class="ticket-title">{{ t.title }}</span>
+            <span class="ticket-meta">{{ t.createdByName }} · {{ t.assignedToName || 'Sin asignar' }}</span>
+          </td>
+          <td>
+            <span
+              class="status-chip"
+              [style.background]="statusColors[t.status].bg"
+              [style.color]="statusColors[t.status].fg"
+              [style.border-color]="statusColors[t.status].bc"
+            >{{ statusLabels[t.status] }}</span>
+          </td>
+          <td>
+            <span [style.color]="priorityColors[t.priority].fg" class="priority-label">{{ priorityLabels[t.priority] }}</span>
+          </td>
+          <td>{{ t.categoryName || 'Sin categoría' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (filteredTickets().length === 0) {
+    <p class="state-message">Ningún ticket coincide con los filtros aplicados.</p>
+  }
+}
