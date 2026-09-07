@@ -20,13 +20,24 @@ API REST del sistema de gestión de incidencias IT de Nemblex, con soporte para 
 ```
 com.nemblex
 ├── controller   # Controladores REST
-├── service      # Lógica de negocio
+├── service      # Lógica de negocio (interfaces + impl)
 ├── repository   # Repositorios Spring Data JPA
-├── model        # Entidades JPA
-├── dto          # Objetos de transferencia de datos
-├── config       # Configuración (beans, CORS, OpenAPI, etc.)
-└── security     # Configuración de seguridad y JWT
+├── entity       # Entidades JPA
+├── mapper       # Mappers entidad <-> DTO (MapStruct)
+├── dto          # Objetos de transferencia de datos (request / response)
+├── exception    # Excepciones de dominio y GlobalExceptionHandler
+├── config       # Configuración (beans, CORS, OpenAPI, seed de datos, etc.)
+└── security     # Configuración de seguridad y filtros JWT
 ```
+
+## Funcionalidades implementadas
+
+- **Autenticación JWT**: `POST /api/auth/login` (filtro propio, no un controller) devuelve un token Bearer.
+- **Tickets** (`/api/tickets`): alta, listado (con filtro opcional por estado y categoría), detalle, actualización y baja. El creador se resuelve siempre del usuario autenticado, nunca del body.
+- **Auditoría de incidencias** (`/api/audit-logs`): un ticket en estado `PENDING_APPROVAL` puede recibir un `AuditLog` con una acción propuesta; un SUPERVISOR/ADMIN lo aprueba o rechaza (`PUT /api/audit-logs/{id}/resolve`), lo que mueve el ticket a `RESOLVED` (aprobado) o `IN_PROGRESS` (rechazado, vuelve al técnico). El estado `RESOLVED` solo se alcanza por esta vía, nunca por `PUT /api/tickets/{id}` directo.
+- **Autorización por rol**: TECHNICIAN / SUPERVISOR / ADMIN, aplicada por endpoint en `SecurityConfig`.
+
+Pendiente: agente de IA (clasificación automática y RAG sobre incidencias) y frontend Angular.
 
 ## Requisitos previos
 
@@ -109,9 +120,31 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 > accesible y las variables `DB_USER`/`DB_PASSWORD` configuradas (`docker compose up -d` la deja lista). Para
 > compilar y empaquetar sin necesidad de una base de datos activa, usa `./mvnw.cmd clean install -DskipTests`.
 
+## Tests
+
+JUnit 5 + Mockito (`@ExtendWith(MockitoExtension.class)`, patrón AAA) para la capa de servicio, seguridad y
+manejo de errores. Para correr solo estos tests unitarios, sin necesitar Postgres:
+
+```bash
+./mvnw.cmd clean test -Dtest='!BackendApplicationTests'
+```
+
+Para la suite completa (incluye `BackendApplicationTests`, que levanta el contexto real) hace falta Postgres
+arriba (`docker compose up -d`) y las variables de entorno del `.env` exportadas:
+
+```bash
+./mvnw.cmd clean test
+```
+
+> **Importante:** después de cambiar de rama (`git checkout`), corré siempre `clean test` y no solo `test` — el
+> compilador incremental de Maven puede quedar en un estado inconsistente con el árbol de trabajo nuevo y dar
+> errores de classloading (`NoClassDefFoundError`) que no son un bug real del código.
+
 ## Perfiles
 
-- `dev`: apunta a la base de datos `nemblex`, `ddl-auto: update`, SQL visible en logs.
+- `dev`: apunta a la base de datos `nemblex`, `ddl-auto: update`, SQL visible en logs. Único perfil en el que
+  corre `DataSeeder`, que crea usuarios de prueba (admin/supervisor/technician) con contraseña conocida — nunca
+  se ejecuta fuera de `dev`, ni siquiera si no se define ningún perfil.
 - `test`: apunta a la base de datos `nemblex_test`, `ddl-auto: create-drop`.
 
 El perfil activo se controla con la variable de entorno `SPRING_PROFILES_ACTIVE` (por defecto `dev`).
