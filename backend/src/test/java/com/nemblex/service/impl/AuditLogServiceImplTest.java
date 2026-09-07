@@ -223,4 +223,56 @@ class AuditLogServiceImplTest {
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(userRepository, never()).findById(anyLong());
     }
+
+    @Test
+    void undoResolution_shouldRevertToPending_whenResolved() {
+        // Arrange
+        AppUser approver = AppUser.builder().id(2L).name("Jefe IT").build();
+        AuditLog existingLog = AuditLog.builder()
+                .id(1L)
+                .resultStatus(AuditResultStatus.APPROVED)
+                .approvedBy(approver)
+                .build();
+        AuditLogResponse expectedResponse = AuditLogResponse.builder()
+                .id(1L)
+                .resultStatus(AuditResultStatus.PENDING)
+                .build();
+
+        when(auditLogRepository.findById(1L)).thenReturn(Optional.of(existingLog));
+        when(auditLogRepository.saveAndFlush(existingLog)).thenReturn(existingLog);
+        when(auditLogMapper.toResponse(existingLog)).thenReturn(expectedResponse);
+
+        // Act
+        AuditLogResponse result = auditLogService.undoResolution(1L);
+
+        // Assert
+        assertThat(result).isEqualTo(expectedResponse);
+        assertThat(existingLog.getResultStatus()).isEqualTo(AuditResultStatus.PENDING);
+        assertThat(existingLog.getApprovedBy()).isNull();
+        verify(auditLogRepository).saveAndFlush(existingLog);
+    }
+
+    @Test
+    void undoResolution_shouldThrowBadRequestException_whenAlreadyPending() {
+        // Arrange
+        AuditLog existingLog = AuditLog.builder().id(1L).resultStatus(AuditResultStatus.PENDING).build();
+        when(auditLogRepository.findById(1L)).thenReturn(Optional.of(existingLog));
+
+        // Act & Assert
+        assertThatThrownBy(() -> auditLogService.undoResolution(1L))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("AuditLog is not resolved, nothing to undo");
+        verify(auditLogRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void undoResolution_shouldThrowResourceNotFoundException_whenNotExists() {
+        // Arrange
+        when(auditLogRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> auditLogService.undoResolution(1L))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(auditLogRepository, never()).saveAndFlush(any());
+    }
 }

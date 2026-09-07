@@ -63,6 +63,12 @@ public class AuditLogController {
                 auditLogService.resolveLog(id, request, currentUserId(authentication)));
     }
 
+    @Operation(summary = "Deshace la resolucion de un registro de auditoria, volviendolo a PENDING (SUPERVISOR o ADMIN)")
+    @PutMapping("/{id}/undo")
+    public ResponseEntity<AuditLogResponse> undo(@PathVariable Long id) {
+        return ResponseEntity.ok(auditLogService.undoResolution(id));
+    }
+
     private Long currentUserId(Authentication authentication) {
         String email = authentication.getName();
         AppUser user = userRepository.findByEmail(email)

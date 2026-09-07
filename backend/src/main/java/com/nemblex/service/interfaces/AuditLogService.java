@@ -14,4 +14,6 @@ public interface AuditLogService {
     List<AuditLogResponse> getAllPending();
 
     AuditLogResponse resolveLog(Long id, AuditLogApprovalRequest dto, Long approvedByUserId);
+
+    AuditLogResponse undoResolution(Long id);
 }
