@@ -1,7 +1,6 @@
 package com.nemblex.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,7 +19,4 @@ public class TicketRequest {
     private String description;
 
     private Long categoryId;
-
-    @NotNull(message = "createdBy is required")
-    private Long createdBy;
 }

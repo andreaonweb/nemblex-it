@@ -15,6 +15,7 @@ import com.nemblex.entity.AppUser;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
+import com.nemblex.exception.BadRequestException;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.mapper.TicketMapper;
 import com.nemblex.repository.AppUserRepository;
@@ -53,7 +54,6 @@ class TicketServiceImplTest {
         TicketRequest request = TicketRequest.builder()
                 .title("Impresora no enciende")
                 .description("No prende desde ayer")
-                .createdBy(1L)
                 .build();
         AppUser creator = AppUser.builder().id(1L).name("Ana").build();
         Ticket mappedEntity = new Ticket();
@@ -71,7 +71,7 @@ class TicketServiceImplTest {
         when(ticketMapper.toResponse(mappedEntity)).thenReturn(expectedResponse);
 
         // Act
-        TicketResponse result = ticketService.createTicket(request);
+        TicketResponse result = ticketService.createTicket(request, 1L);
 
         // Assert
         assertThat(result).isEqualTo(expectedResponse);
@@ -162,6 +162,41 @@ class TicketServiceImplTest {
         assertThatThrownBy(() -> ticketService.updateTicket(1L, request))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(ticketMapper, never()).updateFromRequest(any(), any());
+    }
+
+    @Test
+    void updateTicket_shouldThrowBadRequestException_whenSettingStatusResolvedDirectly() {
+        // Arrange
+        Ticket existingTicket = Ticket.builder()
+                .id(1L)
+                .status(TicketStatus.PENDING_APPROVAL)
+                .build();
+        TicketUpdateRequest request = TicketUpdateRequest.builder().status(TicketStatus.RESOLVED).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+
+        // Act & Assert
+        assertThatThrownBy(() -> ticketService.updateTicket(1L, request))
+                .isInstanceOf(BadRequestException.class);
+        verify(ticketMapper, never()).updateFromRequest(any(), any());
+        verify(ticketRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void updateTicket_shouldAllowSettingStatusClosed_directly() {
+        // Arrange
+        Ticket existingTicket = Ticket.builder().id(1L).status(TicketStatus.RESOLVED).build();
+        TicketUpdateRequest request = TicketUpdateRequest.builder().status(TicketStatus.CLOSED).build();
+        TicketResponse expectedResponse = TicketResponse.builder().id(1L).status(TicketStatus.CLOSED).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+        when(ticketRepository.saveAndFlush(existingTicket)).thenReturn(existingTicket);
+        when(ticketMapper.toResponse(existingTicket)).thenReturn(expectedResponse);
+
+        // Act
+        TicketResponse result = ticketService.updateTicket(1L, request);
+
+        // Assert
+        assertThat(result).isEqualTo(expectedResponse);
+        verify(ticketMapper).updateFromRequest(request, existingTicket);
     }
 
     @Test

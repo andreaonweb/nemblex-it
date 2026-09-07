@@ -15,6 +15,7 @@ import com.nemblex.entity.AppUser;
 import com.nemblex.entity.AuditLog;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.AuditResultStatus;
+import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.exception.BadRequestException;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.mapper.AuditLogMapper;
@@ -52,7 +53,7 @@ class AuditLogServiceImplTest {
     void createLog_shouldCreateWithDefaultStatusPending() {
         // Arrange
         AuditLogRequest dto = AuditLogRequest.builder().ticketId(1L).action("APPROVE_RESOLUTION").build();
-        Ticket ticket = Ticket.builder().id(1L).build();
+        Ticket ticket = Ticket.builder().id(1L).status(TicketStatus.PENDING_APPROVAL).build();
         AuditLog mappedEntity = new AuditLog();
         mappedEntity.setAction(dto.getAction());
         AuditLogResponse expectedResponse = AuditLogResponse.builder()
@@ -86,6 +87,20 @@ class AuditLogServiceImplTest {
         // Act & Assert
         assertThatThrownBy(() -> auditLogService.createLog(dto))
                 .isInstanceOf(ResourceNotFoundException.class);
+        verify(auditLogMapper, never()).toEntity(any());
+        verify(auditLogRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void createLog_shouldThrowBadRequestException_whenTicketNotPendingApproval() {
+        // Arrange
+        AuditLogRequest dto = AuditLogRequest.builder().ticketId(1L).action("APPROVE_RESOLUTION").build();
+        Ticket ticket = Ticket.builder().id(1L).status(TicketStatus.IN_PROGRESS).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+        // Act & Assert
+        assertThatThrownBy(() -> auditLogService.createLog(dto))
+                .isInstanceOf(BadRequestException.class);
         verify(auditLogMapper, never()).toEntity(any());
         verify(auditLogRepository, never()).saveAndFlush(any());
     }
@@ -125,7 +140,8 @@ class AuditLogServiceImplTest {
     @Test
     void resolveLog_shouldApproveAndSaveApprover_whenPending() {
         // Arrange
-        AuditLog existingLog = AuditLog.builder().id(1L).resultStatus(AuditResultStatus.PENDING).build();
+        Ticket ticket = Ticket.builder().id(5L).status(TicketStatus.PENDING_APPROVAL).build();
+        AuditLog existingLog = AuditLog.builder().id(1L).ticket(ticket).resultStatus(AuditResultStatus.PENDING).build();
         AuditLogApprovalRequest dto = AuditLogApprovalRequest.builder().resultStatus(AuditResultStatus.APPROVED).build();
         AppUser approver = AppUser.builder().id(2L).name("Jefe IT").build();
         AuditLogResponse expectedResponse = AuditLogResponse.builder()
@@ -136,6 +152,7 @@ class AuditLogServiceImplTest {
 
         when(auditLogRepository.findById(1L)).thenReturn(Optional.of(existingLog));
         when(userRepository.findById(2L)).thenReturn(Optional.of(approver));
+        when(ticketRepository.saveAndFlush(ticket)).thenReturn(ticket);
         when(auditLogRepository.saveAndFlush(existingLog)).thenReturn(existingLog);
         when(auditLogMapper.toResponse(existingLog)).thenReturn(expectedResponse);
 
@@ -146,12 +163,15 @@ class AuditLogServiceImplTest {
         assertThat(result).isEqualTo(expectedResponse);
         assertThat(existingLog.getResultStatus()).isEqualTo(AuditResultStatus.APPROVED);
         assertThat(existingLog.getApprovedBy()).isEqualTo(approver);
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.RESOLVED);
+        verify(ticketRepository).saveAndFlush(ticket);
     }
 
     @Test
     void resolveLog_shouldRejectAndSaveApprover_whenPending() {
         // Arrange
-        AuditLog existingLog = AuditLog.builder().id(1L).resultStatus(AuditResultStatus.PENDING).build();
+        Ticket ticket = Ticket.builder().id(5L).status(TicketStatus.PENDING_APPROVAL).build();
+        AuditLog existingLog = AuditLog.builder().id(1L).ticket(ticket).resultStatus(AuditResultStatus.PENDING).build();
         AuditLogApprovalRequest dto = AuditLogApprovalRequest.builder().resultStatus(AuditResultStatus.REJECTED).build();
         AppUser approver = AppUser.builder().id(2L).name("Jefe IT").build();
         AuditLogResponse expectedResponse = AuditLogResponse.builder()
@@ -162,6 +182,7 @@ class AuditLogServiceImplTest {
 
         when(auditLogRepository.findById(1L)).thenReturn(Optional.of(existingLog));
         when(userRepository.findById(2L)).thenReturn(Optional.of(approver));
+        when(ticketRepository.saveAndFlush(ticket)).thenReturn(ticket);
         when(auditLogRepository.saveAndFlush(existingLog)).thenReturn(existingLog);
         when(auditLogMapper.toResponse(existingLog)).thenReturn(expectedResponse);
 
@@ -172,6 +193,8 @@ class AuditLogServiceImplTest {
         assertThat(result).isEqualTo(expectedResponse);
         assertThat(existingLog.getResultStatus()).isEqualTo(AuditResultStatus.REJECTED);
         assertThat(existingLog.getApprovedBy()).isEqualTo(approver);
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.IN_PROGRESS);
+        verify(ticketRepository).saveAndFlush(ticket);
     }
 
     @Test
@@ -186,6 +209,7 @@ class AuditLogServiceImplTest {
                 .isInstanceOf(BadRequestException.class);
         verify(userRepository, never()).findById(anyLong());
         verify(auditLogRepository, never()).saveAndFlush(any());
+        verify(ticketRepository, never()).saveAndFlush(any());
     }
 
     @Test

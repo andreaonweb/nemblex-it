@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface TicketService {
 
-    TicketResponse createTicket(TicketRequest request);
+    TicketResponse createTicket(TicketRequest request, Long creatorId);
 
     List<TicketResponse> getAllTickets(TicketStatus status, Long categoryId);
 

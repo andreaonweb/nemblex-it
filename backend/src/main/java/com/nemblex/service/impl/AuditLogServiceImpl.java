@@ -7,6 +7,7 @@ import com.nemblex.entity.AppUser;
 import com.nemblex.entity.AuditLog;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.AuditResultStatus;
+import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.exception.BadRequestException;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.mapper.AuditLogMapper;
@@ -41,6 +42,10 @@ public class AuditLogServiceImpl implements AuditLogService {
     public AuditLogResponse createLog(AuditLogRequest dto) {
         Ticket ticket = ticketRepository.findById(dto.getTicketId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", dto.getTicketId()));
+        if (ticket.getStatus() != TicketStatus.PENDING_APPROVAL) {
+            throw new BadRequestException(
+                    "Solo se pueden registrar auditorias sobre incidencias en estado PENDING_APPROVAL");
+        }
 
         AuditLog auditLog = auditLogMapper.toEntity(dto);
         auditLog.setTicket(ticket);
@@ -85,6 +90,10 @@ public class AuditLogServiceImpl implements AuditLogService {
 
         auditLog.setResultStatus(target);
         auditLog.setApprovedBy(approver);
+
+        Ticket ticket = auditLog.getTicket();
+        ticket.setStatus(target == AuditResultStatus.APPROVED ? TicketStatus.RESOLVED : TicketStatus.IN_PROGRESS);
+        ticketRepository.saveAndFlush(ticket);
 
         return auditLogMapper.toResponse(auditLogRepository.saveAndFlush(auditLog));
     }

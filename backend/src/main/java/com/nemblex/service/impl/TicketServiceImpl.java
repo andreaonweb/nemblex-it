@@ -8,6 +8,7 @@ import com.nemblex.entity.Category;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
+import com.nemblex.exception.BadRequestException;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.mapper.TicketMapper;
 import com.nemblex.repository.AppUserRepository;
@@ -38,9 +39,9 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public TicketResponse createTicket(TicketRequest request) {
-        AppUser creator = userRepository.findById(request.getCreatedBy())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getCreatedBy()));
+    public TicketResponse createTicket(TicketRequest request, Long creatorId) {
+        AppUser creator = userRepository.findById(creatorId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", creatorId));
 
         Ticket ticket = ticketMapper.toEntity(request);
         ticket.setStatus(TicketStatus.NEW);
@@ -78,6 +79,10 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public TicketResponse updateTicket(Long id, TicketUpdateRequest request) {
         Ticket ticket = findTicketOrThrow(id);
+        if (request.getStatus() == TicketStatus.RESOLVED) {
+            throw new BadRequestException(
+                    "El estado RESOLVED solo puede alcanzarse aprobando un AuditLog");
+        }
         ticketMapper.updateFromRequest(request, ticket);
 
         if (request.getCategoryId() != null) {
