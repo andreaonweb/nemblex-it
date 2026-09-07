@@ -5,6 +5,7 @@ import com.nemblex.dto.request.TicketUpdateRequest;
 import com.nemblex.dto.response.TicketResponse;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.service.interfaces.TicketService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -29,6 +30,7 @@ public class TicketController {
         this.ticketService = ticketService;
     }
 
+    @Operation(summary = "Crea una nueva incidencia")
     @PostMapping
     public ResponseEntity<TicketResponse> create(@Valid @RequestBody TicketRequest request) {
         TicketResponse created = ticketService.createTicket(request);
@@ -37,6 +39,7 @@ public class TicketController {
                 .body(created);
     }
 
+    @Operation(summary = "Lista incidencias, con filtro opcional por estado y categoria")
     @GetMapping
     public ResponseEntity<List<TicketResponse>> list(
             @RequestParam(required = false) TicketStatus status,
@@ -44,17 +47,20 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getAllTickets(status, categoryId));
     }
 
+    @Operation(summary = "Obtiene una incidencia por su id")
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(ticketService.getTicketById(id));
     }
 
+    @Operation(summary = "Actualiza una incidencia existente")
     @PutMapping("/{id}")
     public ResponseEntity<TicketResponse> update(@PathVariable Long id,
                                                  @RequestBody TicketUpdateRequest request) {
         return ResponseEntity.ok(ticketService.updateTicket(id, request));
     }
 
+    @Operation(summary = "Elimina una incidencia")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         ticketService.deleteTicket(id);

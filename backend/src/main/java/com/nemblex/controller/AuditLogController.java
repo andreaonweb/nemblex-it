@@ -7,6 +7,7 @@ import com.nemblex.entity.AppUser;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.repository.AppUserRepository;
 import com.nemblex.service.interfaces.AuditLogService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -32,6 +33,7 @@ public class AuditLogController {
         this.userRepository = userRepository;
     }
 
+    @Operation(summary = "Registra una accion de auditoria sobre una incidencia en estado PENDING")
     @PostMapping
     public ResponseEntity<AuditLogResponse> create(@Valid @RequestBody AuditLogRequest request) {
         AuditLogResponse created = auditLogService.createLog(request);
@@ -40,16 +42,19 @@ public class AuditLogController {
                 .body(created);
     }
 
+    @Operation(summary = "Lista los registros de auditoria de una incidencia concreta")
     @GetMapping("/ticket/{ticketId}")
     public ResponseEntity<List<AuditLogResponse>> getByTicket(@PathVariable Long ticketId) {
         return ResponseEntity.ok(auditLogService.getLogsByTicket(ticketId));
     }
 
+    @Operation(summary = "Lista los registros de auditoria pendientes de aprobacion (SUPERVISOR o ADMIN)")
     @GetMapping("/pending")
     public ResponseEntity<List<AuditLogResponse>> getPending() {
         return ResponseEntity.ok(auditLogService.getAllPending());
     }
 
+    @Operation(summary = "Aprueba o rechaza un registro de auditoria pendiente (SUPERVISOR o ADMIN)")
     @PutMapping("/{id}/resolve")
     public ResponseEntity<AuditLogResponse> resolve(@PathVariable Long id,
                                                     @Valid @RequestBody AuditLogApprovalRequest request,
