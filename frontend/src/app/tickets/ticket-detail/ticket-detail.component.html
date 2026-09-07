@@ -1,0 +1,109 @@
+<div class="detail">
+  <div class="detail__header">
+    <div class="detail__header-text">
+      <span class="detail__meta">#{{ ticket().id }} · creado {{ ticket().createdAt | date: 'dd/MM/yy HH:mm' }}</span>
+      <h2 class="detail__title">{{ ticket().title }}</h2>
+    </div>
+    <button mat-icon-button aria-label="Cerrar el detalle de la incidencia" (click)="closed.emit()">✕</button>
+  </div>
+
+  <mat-tab-group animationDuration="0ms" class="detail__tabs">
+    <mat-tab label="Resumen">
+      <dl class="fields">
+        <div class="fields__item">
+          <dt>Estado</dt>
+          <dd>
+            <span
+              class="status-chip"
+              [style.background]="statusColors[ticket().status].bg"
+              [style.color]="statusColors[ticket().status].fg"
+            >{{ statusLabels[ticket().status] }}</span>
+          </dd>
+        </div>
+        <div class="fields__item">
+          <dt>Prioridad</dt>
+          <dd [style.color]="priorityColors[ticket().priority].fg">{{ priorityLabels[ticket().priority] }}</dd>
+        </div>
+        <div class="fields__item">
+          <dt>Categoría</dt>
+          <dd>{{ ticket().categoryName || 'Sin categoría' }}</dd>
+        </div>
+        <div class="fields__item">
+          <dt>Solicitante</dt>
+          <dd>{{ ticket().createdByName }}</dd>
+        </div>
+        <div class="fields__item">
+          <dt>Asignado a</dt>
+          <dd>{{ ticket().assignedToName || 'Sin asignar' }}</dd>
+        </div>
+      </dl>
+    </mat-tab>
+
+    <mat-tab label="Clasificación">
+      <div class="classification">
+        <div class="classification__category">{{ ticket().categoryName || 'Sin categoría' }}</div>
+        <p class="classification__note">Clasificación manual. Todavía no hay un agente de IA que la proponga.</p>
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Descripción">
+      <p class="description">{{ ticket().description }}</p>
+    </mat-tab>
+  </mat-tab-group>
+
+  <section class="activity">
+    <h3 class="activity__title">Actividad</h3>
+    @if (loadingActivity()) {
+      <mat-spinner diameter="24" />
+    } @else if (activity().length === 0) {
+      <p class="activity__empty">Todavía no hay registros de auditoría para esta incidencia.</p>
+    } @else {
+      <ol class="activity__list">
+        @for (entry of activity(); track entry.id) {
+          <li>
+            <span class="activity__action">{{ entry.action }}</span>
+            @if (entry.reason) {
+              <span class="activity__reason">{{ entry.reason }}</span>
+            }
+            <span class="activity__when">
+              {{ entry.createdAt | date: 'dd/MM/yy HH:mm' }}
+              @if (entry.approvedByName) { · {{ entry.approvedByName }} }
+              · {{ entry.resultStatus }}
+            </span>
+          </li>
+        }
+      </ol>
+    }
+  </section>
+
+  <section class="actions">
+    <div class="actions__row">
+      <button mat-flat-button color="primary" (click)="assignToMe()" [disabled]="assigning()">
+        @if (assigning()) { <mat-spinner diameter="18" /> } @else { Asignarme }
+      </button>
+      <button mat-stroked-button (click)="toggleResolveForm()">Resolver</button>
+    </div>
+    @if (assignError()) {
+      <p class="actions__error" role="alert">{{ assignError() }}</p>
+    }
+
+    @if (resolveOpen()) {
+      <form [formGroup]="resolveForm" (ngSubmit)="submitResolve()" class="resolve-form">
+        <mat-form-field appearance="outline" class="resolve-form__field">
+          <mat-label>Acción realizada</mat-label>
+          <input matInput formControlName="action" placeholder="Ej: reinicio de servicio" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="resolve-form__field">
+          <mat-label>Motivo (opcional)</mat-label>
+          <textarea matInput formControlName="reason" rows="2"></textarea>
+        </mat-form-field>
+        @if (resolveError()) {
+          <p class="actions__error" role="alert">{{ resolveError() }}</p>
+        }
+        <button mat-flat-button color="primary" type="submit" [disabled]="resolving()">
+          @if (resolving()) { <mat-spinner diameter="18" /> } @else { Confirmar resolución }
+        </button>
+      </form>
+    }
+  </section>
+</div>

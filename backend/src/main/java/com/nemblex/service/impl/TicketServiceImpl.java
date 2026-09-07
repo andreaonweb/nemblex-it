@@ -101,6 +101,21 @@ public class TicketServiceImpl implements TicketService {
         ticketRepository.delete(findTicketOrThrow(id));
     }
 
+    @Override
+    public TicketResponse assignToMe(Long id, Long userId) {
+        Ticket ticket = findTicketOrThrow(id);
+        if (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED) {
+            throw new BadRequestException(
+                    "Ticket " + id + " is already " + ticket.getStatus() + ", cannot be assigned");
+        }
+
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        ticket.setAssignedTo(user);
+
+        return ticketMapper.toResponse(ticketRepository.saveAndFlush(ticket));
+    }
+
     private Ticket findTicketOrThrow(Long id) {
         return ticketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", id));

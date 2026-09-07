@@ -9,11 +9,12 @@ import { TicketService } from '../services/ticket.service';
 import { Ticket, TicketPriority, TicketStatus } from '../models/ticket.models';
 import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER, STATUS_COLORS, STATUS_LABELS, STATUS_ORDER } from '../models/ticket-labels';
 import { computeKpis, countByStatus, filterTickets } from './ticket-list.logic';
+import { TicketDetailComponent } from '../ticket-detail/ticket-detail.component';
 
 @Component({
   selector: 'app-tickets-page',
   standalone: true,
-  imports: [MatCardModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatSelectModule],
+  imports: [MatCardModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatSelectModule, TicketDetailComponent],
   templateUrl: './tickets-page.component.html',
   styleUrl: './tickets-page.component.scss'
 })
@@ -34,6 +35,7 @@ export class TicketsPageComponent implements OnInit {
   readonly statusFilter = signal<TicketStatus | 'Todos'>('Todos');
   readonly priorityFilter = signal<TicketPriority | 'Todas'>('Todas');
   readonly search = signal('');
+  readonly selectedId = signal<number | null>(null);
 
   readonly kpis = computed(() => computeKpis(this.tickets()));
   readonly filteredTickets = computed(() =>
@@ -43,6 +45,7 @@ export class TicketsPageComponent implements OnInit {
       search: this.search()
     })
   );
+  readonly selectedTicket = computed(() => this.tickets().find((t) => t.id === this.selectedId()) ?? null);
 
   ngOnInit(): void {
     this.loading.set(true);
@@ -60,5 +63,17 @@ export class TicketsPageComponent implements OnInit {
 
   statusCount(status: TicketStatus | 'Todos'): number {
     return countByStatus(this.tickets(), status);
+  }
+
+  selectTicket(id: number): void {
+    this.selectedId.set(id);
+  }
+
+  closeDetail(): void {
+    this.selectedId.set(null);
+  }
+
+  onTicketChanged(updated: Ticket): void {
+    this.tickets.update((current) => current.map((t) => (t.id === updated.id ? updated : t)));
   }
 }

@@ -222,4 +222,58 @@ class TicketServiceImplTest {
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(ticketRepository, never()).delete(any());
     }
+
+    @Test
+    void assignToMe_shouldAssignTicket_whenActive() {
+        // Arrange
+        Ticket existingTicket = Ticket.builder().id(1L).status(TicketStatus.NEW).build();
+        AppUser technician = AppUser.builder().id(3L).name("Ana Torres").build();
+        TicketResponse expectedResponse = TicketResponse.builder().id(1L).assignedToId(3L).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+        when(userRepository.findById(3L)).thenReturn(Optional.of(technician));
+        when(ticketRepository.saveAndFlush(existingTicket)).thenReturn(existingTicket);
+        when(ticketMapper.toResponse(existingTicket)).thenReturn(expectedResponse);
+
+        // Act
+        TicketResponse result = ticketService.assignToMe(1L, 3L);
+
+        // Assert
+        assertThat(result).isEqualTo(expectedResponse);
+        assertThat(existingTicket.getAssignedTo()).isEqualTo(technician);
+    }
+
+    @Test
+    void assignToMe_shouldThrowResourceNotFoundException_whenTicketNotExists() {
+        // Arrange
+        when(ticketRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> ticketService.assignToMe(1L, 3L))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(ticketRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void assignToMe_shouldThrowBadRequestException_whenTicketResolved() {
+        // Arrange
+        Ticket existingTicket = Ticket.builder().id(1L).status(TicketStatus.RESOLVED).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+
+        // Act & Assert
+        assertThatThrownBy(() -> ticketService.assignToMe(1L, 3L))
+                .isInstanceOf(BadRequestException.class);
+        verify(ticketRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void assignToMe_shouldThrowBadRequestException_whenTicketClosed() {
+        // Arrange
+        Ticket existingTicket = Ticket.builder().id(1L).status(TicketStatus.CLOSED).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+
+        // Act & Assert
+        assertThatThrownBy(() -> ticketService.assignToMe(1L, 3L))
+                .isInstanceOf(BadRequestException.class);
+        verify(ticketRepository, never()).saveAndFlush(any());
+    }
 }

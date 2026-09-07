@@ -17,4 +17,6 @@ public interface TicketService {
     TicketResponse updateTicket(Long id, TicketUpdateRequest request);
 
     void deleteTicket(Long id);
+
+    TicketResponse assignToMe(Long id, Long userId);
 }

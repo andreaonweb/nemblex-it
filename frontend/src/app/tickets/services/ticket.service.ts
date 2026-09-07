@@ -13,4 +13,8 @@ export class TicketService {
   list(): Observable<Ticket[]> {
     return this.http.get<Ticket[]>(this.baseUrl);
   }
+
+  assignToMe(id: number): Observable<Ticket> {
+    return this.http.put<Ticket>(`${this.baseUrl}/${id}/assign-to-me`, {});
+  }
 }

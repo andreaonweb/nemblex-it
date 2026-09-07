@@ -1,6 +1,28 @@
 :host {
   display: block;
-  padding: 20px 24px 32px;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+
+  &--with-detail {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  }
+
+  &__main {
+    min-width: 0;
+    padding: 20px 24px 32px;
+  }
+
+  &__aside {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
 }
 
 .kpis {
@@ -91,6 +113,18 @@
     padding: 12px 16px;
     border-bottom: 1px solid #edeff3;
     vertical-align: top;
+  }
+
+  tbody tr {
+    cursor: pointer;
+
+    &:hover {
+      background: #f7f8fa;
+    }
+
+    &.is-selected {
+      background: #edf1f7;
+    }
   }
 
   tr:last-child td {

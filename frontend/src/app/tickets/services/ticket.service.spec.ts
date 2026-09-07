@@ -48,4 +48,31 @@ describe('TicketService', () => {
 
     expect(result).toEqual(mockTickets);
   });
+
+  it('assigns a ticket to the current user via PUT /api/tickets/{id}/assign-to-me', () => {
+    const mockTicket: Ticket = {
+      id: 1,
+      title: 'VPN caída',
+      description: 'desc',
+      status: 'NEW',
+      priority: 'HIGH',
+      categoryId: null,
+      categoryName: null,
+      createdById: 1,
+      createdByName: 'Ana Torres',
+      assignedToId: 3,
+      assignedToName: 'Ana Torres',
+      createdAt: '2026-09-07T10:00:00',
+      updatedAt: '2026-09-07T10:05:00'
+    };
+
+    let result: Ticket | undefined;
+    service.assignToMe(1).subscribe((ticket) => (result = ticket));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tickets/1/assign-to-me`);
+    expect(req.request.method).toBe('PUT');
+    req.flush(mockTicket);
+
+    expect(result).toEqual(mockTicket);
+  });
 });

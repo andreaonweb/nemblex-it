@@ -67,6 +67,12 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.updateTicket(id, request));
     }
 
+    @Operation(summary = "Asigna la incidencia al usuario autenticado")
+    @PutMapping("/{id}/assign-to-me")
+    public ResponseEntity<TicketResponse> assignToMe(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(ticketService.assignToMe(id, currentUserId(authentication)));
+    }
+
     @Operation(summary = "Elimina una incidencia")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
