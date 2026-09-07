@@ -1,0 +1,35 @@
+<div class="shell">
+  <mat-toolbar class="shell__header">
+    <div class="shell__brand">
+      <span class="shell__logo" aria-hidden="true">N</span>
+      <span class="shell__title">Nemblex</span>
+    </div>
+
+    <nav class="shell__nav" aria-label="Secciones">
+      @for (item of navItems(); track item.path) {
+        <a
+          mat-button
+          [routerLink]="item.path"
+          routerLinkActive="shell__nav-link--active"
+          class="shell__nav-link"
+        >{{ item.label }}</a>
+      }
+    </nav>
+
+    <span class="shell__spacer"></span>
+
+    @if (currentUser(); as user) {
+      <div class="shell__user">
+        <span class="shell__user-email">{{ user.email }}</span>
+        <span class="shell__user-role">{{ user.role }}</span>
+      </div>
+      <button mat-icon-button aria-label="Cerrar sesión" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+      </button>
+    }
+  </mat-toolbar>
+
+  <main class="shell__content">
+    <router-outlet />
+  </main>
+</div>

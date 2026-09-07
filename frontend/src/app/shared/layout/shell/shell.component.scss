@@ -1,0 +1,76 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f5f6f8;
+
+  &__header {
+    background: #0c3b77 !important;
+    color: #fff;
+    gap: 22px;
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  &__logo {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #fff;
+    color: #0c3b77;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  &__title {
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.2px;
+  }
+
+  &__nav {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__nav-link {
+    color: #fff !important;
+
+    &--active {
+      background: rgba(255, 255, 255, 0.18);
+    }
+  }
+
+  &__spacer {
+    flex: 1 1 auto;
+  }
+
+  &__user {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+    text-align: right;
+    margin-right: 4px;
+  }
+
+  &__user-email {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  &__user-role {
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  &__content {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}

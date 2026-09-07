@@ -1,4 +1,91 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$nemblex-primary: mat.m2-define-palette((
+  50: #e6edf7,
+  100: #bfd0e6,
+  200: #94b0d3,
+  300: #6890c0,
+  400: #4777b2,
+  500: #0f4383,
+  600: #0c3b77,
+  700: #0a3268,
+  800: #082a5a,
+  900: #041c42,
+  A100: #a3c1ff,
+  A200: #709fff,
+  A400: #3d7dff,
+  A700: #246cff,
+  contrast: (
+    50: #1b2434,
+    100: #1b2434,
+    200: #1b2434,
+    300: #ffffff,
+    400: #ffffff,
+    500: #ffffff,
+    600: #ffffff,
+    700: #ffffff,
+    800: #ffffff,
+    900: #ffffff,
+    A100: #1b2434,
+    A200: #1b2434,
+    A400: #ffffff,
+    A700: #ffffff,
+  ),
+), 600);
+
+$nemblex-accent: mat.m2-define-palette((
+  50: #fff8e8,
+  100: #ffecc0,
+  200: #ffdf94,
+  300: #ffd267,
+  400: #ffc846,
+  500: #ffc24d,
+  600: #ffb020,
+  700: #e0a000,
+  800: #b48200,
+  900: #7a5800,
+  A100: #ffe9b3,
+  A200: #ffd980,
+  A400: #ffc94d,
+  A700: #ffbe33,
+  contrast: (
+    50: #4a3000,
+    100: #4a3000,
+    200: #4a3000,
+    300: #4a3000,
+    400: #4a3000,
+    500: #4a3000,
+    600: #4a3000,
+    700: #ffffff,
+    800: #ffffff,
+    900: #ffffff,
+    A100: #4a3000,
+    A200: #4a3000,
+    A400: #4a3000,
+    A700: #4a3000,
+  ),
+), 500);
+
+$nemblex-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $nemblex-primary,
+    accent: $nemblex-accent,
+  ),
+  typography: mat.m2-define-typography-config(
+    $font-family: '"Source Sans 3", system-ui, sans-serif',
+  ),
+  density: 0,
+));
+
+@include mat.all-component-themes($nemblex-theme);
 
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body {
+  margin: 0;
+  font-family: "Source Sans 3", system-ui, sans-serif;
+  background: #f5f6f8;
+  color: #1b2434;
+  -webkit-font-smoothing: antialiased;
+}

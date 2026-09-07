@@ -1,0 +1,59 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f6f8;
+}
+
+.login-card {
+  width: min(360px, 90vw);
+  padding: 32px 28px;
+  border-radius: 12px;
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  &__logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #0c3b77;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  &__title {
+    font-weight: 600;
+    font-size: 18px;
+    color: #1b2434;
+  }
+
+  &__subtitle {
+    margin: 0 0 22px;
+    color: #5a6678;
+    font-size: 13.5px;
+  }
+
+  &__field {
+    width: 100%;
+  }
+
+  &__error {
+    margin: 0 0 12px;
+    color: #8a3b0a;
+    font-size: 13px;
+  }
+
+  &__submit {
+    width: 100%;
+    height: 42px;
+  }
+}
