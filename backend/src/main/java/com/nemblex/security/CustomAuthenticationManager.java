@@ -7,6 +7,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +24,12 @@ public class CustomAuthenticationManager implements AuthenticationManager {
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        UserDetails userDetails = userService.loadUserByUsername(authentication.getName());
+        UserDetails userDetails;
+        try {
+            userDetails = userService.loadUserByUsername(authentication.getName());
+        } catch (UsernameNotFoundException e) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
 
         if (!passwordEncoder.matches(authentication.getCredentials().toString(), userDetails.getPassword())) {
             throw new BadCredentialsException("Invalid email or password");

@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nemblex.dto.request.LoginRequest;
 import com.nemblex.dto.response.JwtResponse;
+import com.nemblex.exception.ErrorResponse;
 import com.nemblex.security.CustomAuthenticationManager;
 import com.nemblex.security.SecurityConstants;
 import jakarta.servlet.FilterChain;
@@ -12,6 +13,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Date;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,7 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
 
     private final String jwtSecret;
     private final long expirationMs;
@@ -75,9 +77,16 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
                                               AuthenticationException failed)
             throws IOException, ServletException {
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpServletResponse.SC_UNAUTHORIZED,
+                "Unauthorized",
+                "Invalid email or password",
+                request.getRequestURI());
+
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"" + failed.getMessage() + "\"}");
+        response.getWriter().write(OBJECT_MAPPER.writeValueAsString(error));
         response.getWriter().flush();
     }
 }
