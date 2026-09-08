@@ -2,11 +2,13 @@ package com.nemblex.controller;
 
 import com.nemblex.dto.request.TicketRequest;
 import com.nemblex.dto.request.TicketUpdateRequest;
+import com.nemblex.dto.response.AuditLogResponse;
 import com.nemblex.dto.response.TicketResponse;
 import com.nemblex.entity.AppUser;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.repository.AppUserRepository;
+import com.nemblex.service.interfaces.TicketAiService;
 import com.nemblex.service.interfaces.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -29,10 +31,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final TicketAiService ticketAiService;
     private final AppUserRepository userRepository;
 
-    public TicketController(TicketService ticketService, AppUserRepository userRepository) {
+    public TicketController(TicketService ticketService, TicketAiService ticketAiService,
+                            AppUserRepository userRepository) {
         this.ticketService = ticketService;
+        this.ticketAiService = ticketAiService;
         this.userRepository = userRepository;
     }
 
@@ -71,6 +76,12 @@ public class TicketController {
     @PutMapping("/{id}/assign-to-me")
     public ResponseEntity<TicketResponse> assignToMe(@PathVariable Long id, Authentication authentication) {
         return ResponseEntity.ok(ticketService.assignToMe(id, currentUserId(authentication)));
+    }
+
+    @Operation(summary = "Clasifica una incidencia con IA (Gemini): propone categoria y prioridad como AuditLog pendiente")
+    @PostMapping("/{id}/classify")
+    public ResponseEntity<AuditLogResponse> classify(@PathVariable Long id) {
+        return ResponseEntity.ok(ticketAiService.classifyTicket(id));
     }
 
     @Operation(summary = "Elimina una incidencia")

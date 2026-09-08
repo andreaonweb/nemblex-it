@@ -18,4 +18,6 @@ public interface AuditLogService {
     AuditLogResponse resolveDirectly(AuditLogRequest dto, Long technicianId);
 
     AuditLogResponse undoResolution(Long id);
+
+    AuditLogResponse createAiClassification(Long ticketId, String reasoning);
 }
