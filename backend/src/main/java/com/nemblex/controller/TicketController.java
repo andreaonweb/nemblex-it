@@ -59,6 +59,12 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getAllTickets(status, categoryId));
     }
 
+    @Operation(summary = "Lista las incidencias creadas por el usuario autenticado")
+    @GetMapping("/mine")
+    public ResponseEntity<List<TicketResponse>> mine(Authentication authentication) {
+        return ResponseEntity.ok(ticketService.getMyTickets(currentUserId(authentication)));
+    }
+
     @Operation(summary = "Obtiene una incidencia por su id")
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponse> getById(@PathVariable Long id) {

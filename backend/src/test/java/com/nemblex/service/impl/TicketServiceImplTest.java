@@ -387,4 +387,20 @@ class TicketServiceImplTest {
         verify(userRepository, never()).findById(anyLong());
         verify(ticketRepository, never()).saveAndFlush(any());
     }
+
+    @Test
+    void getMyTickets_shouldReturnOnlyTicketsCreatedByTheGivenUser() {
+        // Arrange
+        Ticket ticket = Ticket.builder().id(1L).build();
+        TicketResponse response = TicketResponse.builder().id(1L).build();
+        when(ticketRepository.findByCreatedById(7L)).thenReturn(List.of(ticket));
+        when(ticketMapper.toResponse(ticket)).thenReturn(response);
+
+        // Act
+        List<TicketResponse> result = ticketService.getMyTickets(7L);
+
+        // Assert
+        assertThat(result).containsExactly(response);
+        verify(ticketRepository).findByCreatedById(7L);
+    }
 }

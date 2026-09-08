@@ -17,3 +17,9 @@ export interface Ticket {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface TicketRequest {
+  title: string;
+  description: string;
+  categoryId?: number;
+}

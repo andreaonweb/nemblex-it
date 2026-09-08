@@ -129,4 +129,61 @@ describe('TicketService', () => {
 
     expect(result).toEqual(mockTicket);
   });
+
+  it('creates a ticket via POST /api/tickets', () => {
+    const mockTicket: Ticket = {
+      id: 20,
+      title: 'No puedo acceder al VPN',
+      description: 'Pide credenciales invalidas',
+      status: 'NEW',
+      priority: 'MEDIUM',
+      categoryId: null,
+      categoryName: null,
+      createdById: 5,
+      createdByName: 'Carlos Mendez',
+      assignedToId: null,
+      assignedToName: null,
+      createdAt: '2026-09-08T10:00:00',
+      updatedAt: '2026-09-08T10:00:00'
+    };
+
+    let result: Ticket | undefined;
+    service.create({ title: 'No puedo acceder al VPN', description: 'Pide credenciales invalidas' }).subscribe((t) => (result = t));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tickets`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ title: 'No puedo acceder al VPN', description: 'Pide credenciales invalidas' });
+    req.flush(mockTicket);
+
+    expect(result).toEqual(mockTicket);
+  });
+
+  it('fetches the tickets created by the current user from GET /api/tickets/mine', () => {
+    const mockTickets: Ticket[] = [
+      {
+        id: 20,
+        title: 'No puedo acceder al VPN',
+        description: 'desc',
+        status: 'NEW',
+        priority: 'MEDIUM',
+        categoryId: null,
+        categoryName: null,
+        createdById: 5,
+        createdByName: 'Carlos Mendez',
+        assignedToId: null,
+        assignedToName: null,
+        createdAt: '2026-09-08T10:00:00',
+        updatedAt: '2026-09-08T10:00:00'
+      }
+    ];
+
+    let result: Ticket[] | undefined;
+    service.getMine().subscribe((tickets) => (result = tickets));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tickets/mine`);
+    expect(req.request.method).toBe('GET');
+    req.flush(mockTickets);
+
+    expect(result).toEqual(mockTickets);
+  });
 });

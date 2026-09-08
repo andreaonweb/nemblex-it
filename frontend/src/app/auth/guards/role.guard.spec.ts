@@ -44,4 +44,11 @@ describe('roleGuard', () => {
     expect(runGuard(['SUPERVISOR', 'ADMIN'])).toBeFalse();
     expect(router.navigate).toHaveBeenCalledWith(['/tickets']);
   });
+
+  it('redirects an EMPLOYEE to /my-tickets when the role is not allowed', () => {
+    authServiceStub.currentUser = () => ({ id: 4, email: 'carlos.mendez@nemblex.dev', role: 'EMPLOYEE' });
+
+    expect(runGuard(['TECHNICIAN', 'SUPERVISOR', 'ADMIN'])).toBeFalse();
+    expect(router.navigate).toHaveBeenCalledWith(['/my-tickets']);
+  });
 });

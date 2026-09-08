@@ -45,10 +45,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/tickets/mine")
+                            .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.GET, "/api/tickets/**")
                             .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/tickets")
-                            .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN")
+                            .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.PUT, "/api/tickets/*/assign-to-me")
                             .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/tickets/*/unassign")

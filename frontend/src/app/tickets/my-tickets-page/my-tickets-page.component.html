@@ -1,0 +1,65 @@
+<div class="page">
+  <div class="page__header">
+    <h1 class="page__title">Mis tickets</h1>
+    <button mat-flat-button color="primary" (click)="toggleForm()">
+      {{ formOpen() ? 'Cancelar' : 'Nuevo ticket' }}
+    </button>
+  </div>
+
+  @if (formOpen()) {
+    <mat-card class="new-ticket-card">
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <mat-form-field appearance="outline" class="new-ticket-card__field">
+          <mat-label>Título</mat-label>
+          <input matInput formControlName="title" />
+          @if (form.controls.title.invalid && form.controls.title.touched) {
+            <mat-error>El título es obligatorio.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="new-ticket-card__field">
+          <mat-label>Descripción</mat-label>
+          <textarea matInput formControlName="description" rows="4"></textarea>
+          @if (form.controls.description.invalid && form.controls.description.touched) {
+            <mat-error>La descripción es obligatoria.</mat-error>
+          }
+        </mat-form-field>
+
+        @if (submitError()) {
+          <p class="state-message state-message--error">{{ submitError() }}</p>
+        }
+
+        <button mat-flat-button color="primary" type="submit" [disabled]="submitting()">
+          @if (submitting()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Crear ticket
+          }
+        </button>
+      </form>
+    </mat-card>
+  }
+
+  @if (loading()) {
+    <div class="state-message"><mat-spinner diameter="28" /></div>
+  } @else if (error()) {
+    <p class="state-message state-message--error">{{ error() }}</p>
+  } @else if (tickets().length === 0) {
+    <p class="state-message">Todavía no creaste ninguna incidencia.</p>
+  } @else {
+    <ul class="ticket-list">
+      @for (t of tickets(); track t.id) {
+        <li class="ticket-list__item">
+          <span class="ticket-list__title">{{ t.title }}</span>
+          <span
+            class="status-chip"
+            [style.background]="statusColors[t.status].bg"
+            [style.color]="statusColors[t.status].fg"
+            [style.border-color]="statusColors[t.status].bc"
+          >{{ statusLabels[t.status] }}</span>
+          <span class="ticket-list__date">{{ t.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+        </li>
+      }
+    </ul>
+  }
+</div>
