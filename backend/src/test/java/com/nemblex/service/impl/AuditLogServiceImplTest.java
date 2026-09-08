@@ -350,7 +350,7 @@ class AuditLogServiceImplTest {
     }
 
     @Test
-    void createAiClassification_shouldCreatePendingAiClassifyLog_whenTicketActive() {
+    void createAiProposal_shouldCreatePendingAiClassifyLog_whenTicketActive() {
         // Arrange
         Ticket ticket = Ticket.builder().id(1L).status(TicketStatus.NEW).build();
         AuditLogResponse expectedResponse = AuditLogResponse.builder()
@@ -365,7 +365,7 @@ class AuditLogServiceImplTest {
         when(auditLogMapper.toResponse(any(AuditLog.class))).thenReturn(expectedResponse);
 
         // Act
-        AuditLogResponse result = auditLogService.createAiClassification(1L, "Palabras clave de VPN detectadas");
+        AuditLogResponse result = auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Palabras clave de VPN detectadas");
 
         // Assert
         assertThat(result).isEqualTo(expectedResponse);
@@ -380,36 +380,61 @@ class AuditLogServiceImplTest {
     }
 
     @Test
-    void createAiClassification_shouldThrowResourceNotFoundException_whenTicketNotExists() {
+    void createAiProposal_shouldCreatePendingLogWithArbitraryAction_forAgentActionProposals() {
+        // Arrange
+        Ticket ticket = Ticket.builder().id(1L).status(TicketStatus.NEW).build();
+        AuditLogResponse expectedResponse = AuditLogResponse.builder()
+                .id(31L)
+                .ticketId(1L)
+                .action("CLOSE")
+                .resultStatus(AuditResultStatus.PENDING)
+                .build();
+
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+        when(auditLogRepository.saveAndFlush(any(AuditLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(auditLogMapper.toResponse(any(AuditLog.class))).thenReturn(expectedResponse);
+
+        // Act
+        AuditLogResponse result = auditLogService.createAiProposal(1L, "CLOSE", "Ticket duplicado del #8");
+
+        // Assert
+        assertThat(result).isEqualTo(expectedResponse);
+        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditLogRepository).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getAction()).isEqualTo("CLOSE");
+    }
+
+    @Test
+    void createAiProposal_shouldThrowResourceNotFoundException_whenTicketNotExists() {
         // Arrange
         when(ticketRepository.findById(99L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> auditLogService.createAiClassification(99L, "reasoning"))
+        assertThatThrownBy(() -> auditLogService.createAiProposal(99L, "AI_CLASSIFY", "reasoning"))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }
 
     @Test
-    void createAiClassification_shouldThrowBadRequestException_whenTicketAlreadyResolved() {
+    void createAiProposal_shouldThrowBadRequestException_whenTicketAlreadyResolved() {
         // Arrange
         Ticket ticket = Ticket.builder().id(1L).status(TicketStatus.RESOLVED).build();
         when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
 
         // Act & Assert
-        assertThatThrownBy(() -> auditLogService.createAiClassification(1L, "reasoning"))
+        assertThatThrownBy(() -> auditLogService.createAiProposal(1L, "AI_CLASSIFY", "reasoning"))
                 .isInstanceOf(BadRequestException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }
 
     @Test
-    void createAiClassification_shouldThrowBadRequestException_whenTicketAlreadyClosed() {
+    void createAiProposal_shouldThrowBadRequestException_whenTicketAlreadyClosed() {
         // Arrange
         Ticket ticket = Ticket.builder().id(1L).status(TicketStatus.CLOSED).build();
         when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
 
         // Act & Assert
-        assertThatThrownBy(() -> auditLogService.createAiClassification(1L, "reasoning"))
+        assertThatThrownBy(() -> auditLogService.createAiProposal(1L, "AI_CLASSIFY", "reasoning"))
                 .isInstanceOf(BadRequestException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }

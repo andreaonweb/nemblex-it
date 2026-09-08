@@ -6,10 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.nemblex.ai.ActionProposal;
 import com.nemblex.ai.AiClassificationResult;
 import com.nemblex.ai.GeminiClient;
 import com.nemblex.dto.response.AuditLogResponse;
@@ -56,25 +58,29 @@ class TicketAiServiceImplTest {
                 .build();
     }
 
+    private static AuditLogResponse auditLog(long id, String action, String reason) {
+        return AuditLogResponse.builder()
+                .id(id)
+                .ticketId(1L)
+                .action(action)
+                .reason(reason)
+                .resultStatus(AuditResultStatus.PENDING)
+                .build();
+    }
+
     @Test
     void classifyTicket_shouldCreateAiClassifyLog_whenGeminiReturnsValidResult() {
         // Arrange
         Ticket ticket = vpnTicket();
         AiClassificationResult classification =
                 new AiClassificationResult("Redes", TicketPriority.HIGH, "Palabras clave de VPN detectadas");
-        AuditLogResponse expectedResponse = AuditLogResponse.builder()
-                .id(40L)
-                .ticketId(1L)
-                .action("AI_CLASSIFY")
-                .reason("Palabras clave de VPN detectadas")
-                .resultStatus(AuditResultStatus.PENDING)
-                .build();
+        AuditLogResponse expectedResponse = auditLog(40L, "AI_CLASSIFY", "Palabras clave de VPN detectadas");
 
         when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
         when(geminiClient.embedText(anyString())).thenReturn(Optional.empty());
         when(geminiClient.classifyTicket("VPN no conecta", "Los usuarios no pueden conectarse a la VPN corporativa", List.of()))
                 .thenReturn(Optional.of(classification));
-        when(auditLogService.createAiClassification(1L, "Palabras clave de VPN detectadas"))
+        when(auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Palabras clave de VPN detectadas"))
                 .thenReturn(expectedResponse);
 
         // Act
@@ -82,7 +88,7 @@ class TicketAiServiceImplTest {
 
         // Assert
         assertThat(result).isEqualTo(expectedResponse);
-        verify(auditLogService).createAiClassification(1L, "Palabras clave de VPN detectadas");
+        verify(auditLogService).createAiProposal(1L, "AI_CLASSIFY", "Palabras clave de VPN detectadas");
     }
 
     @Test
@@ -93,7 +99,7 @@ class TicketAiServiceImplTest {
         // Act & Assert
         assertThatThrownBy(() -> ticketAiService.classifyTicket(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verify(auditLogService, never()).createAiClassification(anyLong(), anyString());
+        verify(auditLogService, never()).createAiProposal(anyLong(), anyString(), anyString());
     }
 
     @Test
@@ -107,7 +113,7 @@ class TicketAiServiceImplTest {
         // Act & Assert
         assertThatThrownBy(() -> ticketAiService.classifyTicket(1L))
                 .isInstanceOf(BadRequestException.class);
-        verify(auditLogService, never()).createAiClassification(anyLong(), anyString());
+        verify(auditLogService, never()).createAiProposal(anyLong(), anyString(), anyString());
     }
 
     @Test
@@ -120,13 +126,7 @@ class TicketAiServiceImplTest {
                 new KnowledgeDocument(2L, "Impresoras de red compartidas", "Contenido del documento 2"));
         AiClassificationResult classification =
                 new AiClassificationResult("Redes", TicketPriority.HIGH, "Basado en el documento de VPN");
-        AuditLogResponse expectedResponse = AuditLogResponse.builder()
-                .id(41L)
-                .ticketId(1L)
-                .action("AI_CLASSIFY")
-                .reason("Basado en el documento de VPN")
-                .resultStatus(AuditResultStatus.PENDING)
-                .build();
+        AuditLogResponse expectedResponse = auditLog(41L, "AI_CLASSIFY", "Basado en el documento de VPN");
 
         when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
         when(geminiClient.embedText("VPN no conecta\nLos usuarios no pueden conectarse a la VPN corporativa"))
@@ -137,7 +137,7 @@ class TicketAiServiceImplTest {
                 "Los usuarios no pueden conectarse a la VPN corporativa",
                 List.of("Contenido del documento 1", "Contenido del documento 2")))
                 .thenReturn(Optional.of(classification));
-        when(auditLogService.createAiClassification(1L, "Basado en el documento de VPN"))
+        when(auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Basado en el documento de VPN"))
                 .thenReturn(expectedResponse);
 
         // Act
@@ -154,20 +154,14 @@ class TicketAiServiceImplTest {
         Ticket ticket = vpnTicket();
         AiClassificationResult classification =
                 new AiClassificationResult("Redes", TicketPriority.HIGH, "Sin contexto adicional");
-        AuditLogResponse expectedResponse = AuditLogResponse.builder()
-                .id(42L)
-                .ticketId(1L)
-                .action("AI_CLASSIFY")
-                .reason("Sin contexto adicional")
-                .resultStatus(AuditResultStatus.PENDING)
-                .build();
+        AuditLogResponse expectedResponse = auditLog(42L, "AI_CLASSIFY", "Sin contexto adicional");
 
         when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
         when(geminiClient.embedText(anyString())).thenReturn(Optional.empty());
         when(geminiClient.classifyTicket(
                 "VPN no conecta", "Los usuarios no pueden conectarse a la VPN corporativa", List.of()))
                 .thenReturn(Optional.of(classification));
-        when(auditLogService.createAiClassification(1L, "Sin contexto adicional")).thenReturn(expectedResponse);
+        when(auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Sin contexto adicional")).thenReturn(expectedResponse);
 
         // Act
         AuditLogResponse result = ticketAiService.classifyTicket(1L);
@@ -175,5 +169,57 @@ class TicketAiServiceImplTest {
         // Assert
         assertThat(result).isEqualTo(expectedResponse);
         verify(knowledgeRepository, never()).findNearest(any(), anyInt());
+    }
+
+    @Test
+    void classifyTicket_shouldCreateSecondAuditLog_whenModelProposesAnAction() {
+        // Arrange
+        Ticket ticket = vpnTicket();
+        ActionProposal proposal = new ActionProposal("CLOSE", "Duplicado del ticket #8, mismo activo e incidencia");
+        AiClassificationResult classification =
+                new AiClassificationResult("Impresoras", TicketPriority.LOW, "Coincide con un ticket ya abierto", proposal);
+        AuditLogResponse classifyResponse = auditLog(50L, "AI_CLASSIFY", "Coincide con un ticket ya abierto");
+        AuditLogResponse closeResponse = auditLog(51L, "CLOSE", "Duplicado del ticket #8, mismo activo e incidencia");
+
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+        when(geminiClient.embedText(anyString())).thenReturn(Optional.empty());
+        when(geminiClient.classifyTicket(anyString(), anyString(), eq(List.of())))
+                .thenReturn(Optional.of(classification));
+        when(auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Coincide con un ticket ya abierto"))
+                .thenReturn(classifyResponse);
+        when(auditLogService.createAiProposal(1L, "CLOSE", "Duplicado del ticket #8, mismo activo e incidencia"))
+                .thenReturn(closeResponse);
+
+        // Act
+        AuditLogResponse result = ticketAiService.classifyTicket(1L);
+
+        // Assert: the endpoint still returns the classification log
+        assertThat(result).isEqualTo(classifyResponse);
+        verify(auditLogService).createAiProposal(1L, "AI_CLASSIFY", "Coincide con un ticket ya abierto");
+        verify(auditLogService).createAiProposal(1L, "CLOSE", "Duplicado del ticket #8, mismo activo e incidencia");
+    }
+
+    @Test
+    void classifyTicket_shouldNotCreateSecondAuditLog_whenModelProposesNoAction() {
+        // Arrange
+        Ticket ticket = vpnTicket();
+        AiClassificationResult classification =
+                new AiClassificationResult("Redes", TicketPriority.MEDIUM, "Caso ambiguo, sin accion clara", null);
+        AuditLogResponse classifyResponse = auditLog(52L, "AI_CLASSIFY", "Caso ambiguo, sin accion clara");
+
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+        when(geminiClient.embedText(anyString())).thenReturn(Optional.empty());
+        when(geminiClient.classifyTicket(anyString(), anyString(), eq(List.of())))
+                .thenReturn(Optional.of(classification));
+        when(auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Caso ambiguo, sin accion clara"))
+                .thenReturn(classifyResponse);
+
+        // Act
+        AuditLogResponse result = ticketAiService.classifyTicket(1L);
+
+        // Assert
+        assertThat(result).isEqualTo(classifyResponse);
+        verify(auditLogService, org.mockito.Mockito.times(1))
+                .createAiProposal(anyLong(), anyString(), anyString());
     }
 }

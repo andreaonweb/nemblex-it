@@ -89,4 +89,59 @@ class GeminiClientTest {
 
         assertThat(result).isEmpty();
     }
+
+    @Test
+    void extractActionProposal_shouldParseAction_whenModelCallsProposeActionTool() {
+        String raw = """
+                {"candidates": [{"content": {"parts": [
+                    {"functionCall": {"name": "proposeAction", "args": {"action": "CLOSE", "reason": "Ya existe el ticket #8"}}}
+                ]}}]}""";
+
+        Optional<ActionProposal> result = geminiClient.extractActionProposal(raw);
+
+        assertThat(result).contains(new ActionProposal("CLOSE", "Ya existe el ticket #8"));
+    }
+
+    @Test
+    void extractActionProposal_shouldReturnEmpty_whenActionIsNone() {
+        String raw = """
+                {"candidates": [{"content": {"parts": [
+                    {"functionCall": {"name": "proposeAction", "args": {"action": "NONE", "reason": "sin evidencia suficiente"}}}
+                ]}}]}""";
+
+        Optional<ActionProposal> result = geminiClient.extractActionProposal(raw);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void extractActionProposal_shouldReturnEmpty_whenModelDidNotCallAnyTool() {
+        String raw = """
+                {"candidates": [{"content": {"parts": [
+                    {"text": "No hace falta ninguna accion."}
+                ]}}]}""";
+
+        Optional<ActionProposal> result = geminiClient.extractActionProposal(raw);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void extractActionProposal_shouldReturnEmpty_whenFunctionCallIsForADifferentTool() {
+        String raw = """
+                {"candidates": [{"content": {"parts": [
+                    {"functionCall": {"name": "otraTool", "args": {"action": "CLOSE", "reason": "x"}}}
+                ]}}]}""";
+
+        Optional<ActionProposal> result = geminiClient.extractActionProposal(raw);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void extractActionProposal_shouldReturnEmpty_whenResponseBodyIsNotValidJson() {
+        Optional<ActionProposal> result = geminiClient.extractActionProposal("no soy json");
+
+        assertThat(result).isEmpty();
+    }
 }

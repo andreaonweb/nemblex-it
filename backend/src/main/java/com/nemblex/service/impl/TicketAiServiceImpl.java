@@ -1,5 +1,6 @@
 package com.nemblex.service.impl;
 
+import com.nemblex.ai.ActionProposal;
 import com.nemblex.ai.AiClassificationResult;
 import com.nemblex.ai.GeminiClient;
 import com.nemblex.dto.response.AuditLogResponse;
@@ -56,7 +57,17 @@ public class TicketAiServiceImpl implements TicketAiService {
                 ticketId, classification.category(), classification.priority(), classification.reasoning(),
                 context.size());
 
-        return auditLogService.createAiClassification(ticketId, classification.reasoning());
+        AuditLogResponse classificationLog =
+                auditLogService.createAiProposal(ticketId, "AI_CLASSIFY", classification.reasoning());
+
+        ActionProposal proposal = classification.actionProposal();
+        if (proposal != null) {
+            log.info("AI action proposal for ticket {}: action={}, reason={}",
+                    ticketId, proposal.action(), proposal.reason());
+            auditLogService.createAiProposal(ticketId, proposal.action(), proposal.reason());
+        }
+
+        return classificationLog;
     }
 
     private List<String> findRelevantContext(Ticket ticket) {

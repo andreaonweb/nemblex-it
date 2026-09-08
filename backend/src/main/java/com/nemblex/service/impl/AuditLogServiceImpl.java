@@ -137,17 +137,17 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public AuditLogResponse createAiClassification(Long ticketId, String reasoning) {
+    public AuditLogResponse createAiProposal(Long ticketId, String action, String reasoning) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
         if (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED) {
             throw new BadRequestException(
-                    "Ticket " + ticket.getId() + " is already " + ticket.getStatus() + ", nothing to classify");
+                    "Ticket " + ticket.getId() + " is already " + ticket.getStatus() + ", nothing to propose");
         }
 
         AuditLog auditLog = AuditLog.builder()
                 .ticket(ticket)
-                .action("AI_CLASSIFY")
+                .action(action)
                 .reason(reasoning)
                 .resultStatus(AuditResultStatus.PENDING)
                 .build();

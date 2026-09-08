@@ -19,5 +19,5 @@ public interface AuditLogService {
 
     AuditLogResponse undoResolution(Long id);
 
-    AuditLogResponse createAiClassification(Long ticketId, String reasoning);
+    AuditLogResponse createAiProposal(Long ticketId, String action, String reasoning);
 }
