@@ -8,8 +8,9 @@ import org.junit.jupiter.api.Test;
 
 class GeminiClientTest {
 
-    private final GeminiClient geminiClient =
-            new GeminiClient("https://generativelanguage.googleapis.com/v1beta", "test-key", "gemini-3.6-flash");
+    private final GeminiClient geminiClient = new GeminiClient(
+            "https://generativelanguage.googleapis.com/v1beta", "test-key", "gemini-3.6-flash",
+            "gemini-embedding-2", 768);
 
     @Test
     void parseModelOutput_shouldParsePlainJson() {
@@ -59,6 +60,32 @@ class GeminiClientTest {
         String raw = "{\"category\": \"Redes\", \"priority\": \"URGENTE\", \"reasoning\": \"algo\"}";
 
         Optional<AiClassificationResult> result = geminiClient.parseModelOutput(raw);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void parseEmbeddingResponse_shouldParseValuesArray() {
+        String raw = "{\"embedding\": {\"values\": [0.1, -0.2, 0.3]}}";
+
+        Optional<float[]> result = geminiClient.parseEmbeddingResponse(raw);
+
+        assertThat(result).isPresent();
+        assertThat(result.get()).containsExactly(0.1f, -0.2f, 0.3f);
+    }
+
+    @Test
+    void parseEmbeddingResponse_shouldReturnEmpty_whenNotValidJson() {
+        Optional<float[]> result = geminiClient.parseEmbeddingResponse("no soy json");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void parseEmbeddingResponse_shouldReturnEmpty_whenValuesFieldMissing() {
+        String raw = "{\"embedding\": {}}";
+
+        Optional<float[]> result = geminiClient.parseEmbeddingResponse(raw);
 
         assertThat(result).isEmpty();
     }

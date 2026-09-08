@@ -1,0 +1,71 @@
+=== DOCUMENTO 1: Acceso VPN y credenciales ===
+
+Política de acceso remoto por VPN
+
+Cuando un usuario reporta que la VPN rechaza sus credenciales tras un cambio de contraseña,
+el procedimiento estándar es el siguiente: las credenciales de VPN se sincronizan con el
+directorio corporativo cada 15 minutos, no de forma instantánea. Si el usuario cambió su
+contraseña hace menos de 15 minutos, debe esperar ese margen antes de reintentar.
+
+Si el problema persiste pasado ese tiempo, el error 691 en clientes Windows suele indicar
+que el cliente VPN tiene cacheada la credencial antigua. La solución es cerrar sesión
+completamente del cliente VPN (no solo desconectar) y volver a autenticarse desde cero.
+
+Si varios usuarios del mismo departamento reportan el mismo problema en una ventana de tiempo
+corta, es probable que se trate de un problema de sincronización masiva del directorio, no de
+credenciales individuales — este caso debe escalarse a Nivel 2 de inmediato, no resolverse
+usuario por usuario.
+
+
+=== DOCUMENTO 2: Impresoras de red compartidas ===
+
+Gestión de incidencias de impresoras de planta
+
+Las impresoras de red (modelos serie MFP) generan tickets duplicados con frecuencia cuando
+varios usuarios del mismo departamento reportan el mismo fallo físico de forma independiente,
+sin saber que ya existe un ticket abierto para esa misma impresora.
+
+Antes de tratar un ticket de impresora como un caso nuevo, se debe comprobar si existe otro
+ticket abierto en las últimas 4 horas para el mismo identificador de activo (código de
+impresora). Si existe, el ticket nuevo debe marcarse como duplicado y vincularse al ticket
+original, en vez de abrir una segunda intervención técnica innecesaria.
+
+Los fallos más comunes reportados en impresoras de planta son: atasco de papel (resolución
+en sitio, prioridad baja), fuera de servicio por toner (resolución en sitio, prioridad media),
+y desconexión de red (requiere revisión de switch, prioridad media-alta si afecta a más de
+un departamento).
+
+
+=== DOCUMENTO 3: Gestión de accesos y permisos a carpetas ===
+
+Procedimiento de acceso a recursos compartidos
+
+Las solicitudes de acceso a carpetas compartidas sensibles (Nóminas, Recursos Humanos,
+Finanzas) requieren siempre aprobación del responsable del departamento propietario del
+recurso antes de conceder el permiso, independientemente de la urgencia indicada por el
+solicitante.
+
+Las solicitudes de acceso a carpetas de uso general (Operaciones, Marketing, Ventas) pueden
+resolverse directamente por el técnico de Nivel 1 sin escalado adicional, siempre que el
+solicitante ya pertenezca a ese departamento según el directorio corporativo.
+
+Si una solicitud de acceso afecta a 5 o más usuarios simultáneamente, debe tratarse como un
+cambio de política de grupo y escalarse a Nivel 2, no resolverse como accesos individuales.
+
+
+=== DOCUMENTO 4: Incidencias de conectividad Wi-Fi ===
+
+Diagnóstico de problemas de red inalámbrica
+
+La intermitencia de Wi-Fi en almacenes y naves industriales suele deberse a interferencia
+de equipos electromecánicos (carretillas elevadoras, sistemas de refrigeración) más que a un
+fallo de la infraestructura de red en sí.
+
+Antes de escalar un ticket de Wi-Fi intermitente a revisión de infraestructura, se debe
+confirmar: (1) si el problema ocurre en una zona concreta o en toda la instalación, y (2) si
+coincide con algún horario o turno concreto de actividad. Si el problema es localizado y no
+depende del horario, es probable que sea interferencia física y no un fallo de red.
+
+Los problemas de Wi-Fi que afectan a la totalidad de una planta o nave de forma simultánea
+deben tratarse siempre como prioridad alta, ya que suelen indicar fallo de un punto de acceso
+central, no un problema de dispositivo individual.

@@ -42,6 +42,14 @@ CREATE TABLE audit_log (
     created_at          TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE knowledge_document (
+    id              SERIAL PRIMARY KEY,
+    title           VARCHAR(200) NOT NULL,
+    content         TEXT NOT NULL,
+    embedding       vector(768) NOT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX idx_ticket_status ON ticket(status);
 CREATE INDEX idx_ticket_category ON ticket(category_id);
 CREATE INDEX idx_audit_log_ticket ON audit_log(ticket_id);
