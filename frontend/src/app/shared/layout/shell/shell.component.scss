@@ -17,21 +17,8 @@
   }
 
   &__logo {
-    width: 30px;
     height: 30px;
-    border-radius: 8px;
-    background: #fff;
-    color: #0c3b77;
-    display: grid;
-    place-items: center;
-    font-weight: 700;
-    font-size: 13px;
-  }
-
-  &__title {
-    font-weight: 600;
-    font-size: 16px;
-    letter-spacing: 0.2px;
+    width: auto;
   }
 
   &__nav {
