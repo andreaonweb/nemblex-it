@@ -8,6 +8,7 @@ import com.nemblex.entity.Category;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
+import com.nemblex.event.TicketCreatedEvent;
 import com.nemblex.exception.BadRequestException;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.mapper.TicketMapper;
@@ -16,6 +17,7 @@ import com.nemblex.repository.CategoryRepository;
 import com.nemblex.repository.TicketRepository;
 import com.nemblex.service.interfaces.TicketService;
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,15 +29,18 @@ public class TicketServiceImpl implements TicketService {
     private final AppUserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final TicketMapper ticketMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     public TicketServiceImpl(TicketRepository ticketRepository,
                              AppUserRepository userRepository,
                              CategoryRepository categoryRepository,
-                             TicketMapper ticketMapper) {
+                             TicketMapper ticketMapper,
+                             ApplicationEventPublisher eventPublisher) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.ticketMapper = ticketMapper;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -49,7 +54,10 @@ public class TicketServiceImpl implements TicketService {
         ticket.setCreatedBy(creator);
         ticket.setCategory(resolveCategory(request.getCategoryId()));
 
-        return ticketMapper.toResponse(ticketRepository.saveAndFlush(ticket));
+        Ticket savedTicket = ticketRepository.saveAndFlush(ticket);
+        eventPublisher.publishEvent(new TicketCreatedEvent(savedTicket.getId()));
+
+        return ticketMapper.toResponse(savedTicket);
     }
 
     @Override

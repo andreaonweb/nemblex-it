@@ -15,6 +15,7 @@ import com.nemblex.entity.AppUser;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
+import com.nemblex.event.TicketCreatedEvent;
 import com.nemblex.exception.BadRequestException;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.mapper.TicketMapper;
@@ -29,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class TicketServiceImplTest {
@@ -44,6 +46,9 @@ class TicketServiceImplTest {
 
     @Mock
     private TicketMapper ticketMapper;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
@@ -81,6 +86,34 @@ class TicketServiceImplTest {
         assertThat(savedTicket.getStatus()).isEqualTo(TicketStatus.NEW);
         assertThat(savedTicket.getPriority()).isEqualTo(TicketPriority.MEDIUM);
         assertThat(savedTicket.getCreatedBy()).isEqualTo(creator);
+    }
+
+    @Test
+    void createTicket_shouldPublishTicketCreatedEvent_afterSavingTheTicket() {
+        // Arrange
+        TicketRequest request = TicketRequest.builder()
+                .title("Impresora no enciende")
+                .description("No prende desde ayer")
+                .build();
+        AppUser creator = AppUser.builder().id(1L).name("Ana").build();
+        Ticket mappedEntity = new Ticket();
+        mappedEntity.setTitle(request.getTitle());
+        mappedEntity.setDescription(request.getDescription());
+        Ticket savedTicket = Ticket.builder().id(42L).title(request.getTitle()).build();
+        TicketResponse expectedResponse = TicketResponse.builder().id(42L).title(request.getTitle()).build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
+        when(ticketMapper.toEntity(request)).thenReturn(mappedEntity);
+        when(ticketRepository.saveAndFlush(any(Ticket.class))).thenReturn(savedTicket);
+        when(ticketMapper.toResponse(savedTicket)).thenReturn(expectedResponse);
+
+        // Act
+        ticketService.createTicket(request, 1L);
+
+        // Assert
+        ArgumentCaptor<TicketCreatedEvent> eventCaptor = ArgumentCaptor.forClass(TicketCreatedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().ticketId()).isEqualTo(42L);
     }
 
     @Test
