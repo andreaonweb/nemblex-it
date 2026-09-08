@@ -52,6 +52,18 @@ describe('filterTickets', () => {
     const result = filterTickets(tickets, { status: 'NEW', priority: 'HIGH', search: 'finanzas' });
     expect(result.map((t) => t.id)).toEqual([1]);
   });
+
+  it('sorts the result by newest first', () => {
+    const unsorted: Ticket[] = [
+      ticket({ id: 1, createdAt: '2026-09-05T10:00:00' }),
+      ticket({ id: 2, createdAt: '2026-09-07T10:00:00' }),
+      ticket({ id: 3, createdAt: '2026-09-06T10:00:00' })
+    ];
+
+    const result = filterTickets(unsorted, noFilters);
+
+    expect(result.map((t) => t.id)).toEqual([2, 3, 1]);
+  });
 });
 
 describe('computeKpis', () => {

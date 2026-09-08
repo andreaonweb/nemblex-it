@@ -13,12 +13,14 @@ export interface TicketKpis {
 
 export function filterTickets(tickets: Ticket[], filters: TicketFilters): Ticket[] {
   const needle = filters.search.trim().toLowerCase();
-  return tickets.filter((t) => {
-    if (filters.status !== 'Todos' && t.status !== filters.status) return false;
-    if (filters.priority !== 'Todas' && t.priority !== filters.priority) return false;
-    if (needle && !`${t.title} ${t.createdByName}`.toLowerCase().includes(needle)) return false;
-    return true;
-  });
+  return tickets
+    .filter((t) => {
+      if (filters.status !== 'Todos' && t.status !== filters.status) return false;
+      if (filters.priority !== 'Todas' && t.priority !== filters.priority) return false;
+      if (needle && !`${t.title} ${t.createdByName}`.toLowerCase().includes(needle)) return false;
+      return true;
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function computeKpis(tickets: Ticket[]): TicketKpis {
