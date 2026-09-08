@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nemblex.dto.request.LoginRequest;
 import com.nemblex.dto.response.JwtResponse;
 import com.nemblex.exception.ErrorResponse;
+import com.nemblex.security.AppUserDetails;
 import com.nemblex.security.CustomAuthenticationManager;
 import com.nemblex.security.SecurityConstants;
 import jakarta.servlet.FilterChain;
@@ -59,11 +60,16 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                 .map(GrantedAuthority::getAuthority)
                 .orElse("ROLE_TECHNICIAN");
 
-        String token = JWT.create()
+        com.auth0.jwt.JWTCreator.Builder tokenBuilder = JWT.create()
                 .withSubject(authResult.getName())
                 .withClaim(SecurityConstants.ROLE_CLAIM, role)
-                .withExpiresAt(new Date(System.currentTimeMillis() + expirationMs))
-                .sign(Algorithm.HMAC512(jwtSecret));
+                .withExpiresAt(new Date(System.currentTimeMillis() + expirationMs));
+
+        if (authResult.getPrincipal() instanceof AppUserDetails appUserDetails) {
+            tokenBuilder.withClaim(SecurityConstants.USER_ID_CLAIM, appUserDetails.getAppUser().getId());
+        }
+
+        String token = tokenBuilder.sign(Algorithm.HMAC512(jwtSecret));
 
         JwtResponse body = new JwtResponse(token, authResult.getName());
 

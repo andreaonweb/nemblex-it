@@ -36,7 +36,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         }
 
         return new UsernamePasswordAuthenticationToken(
-                authentication.getName(),
+                userDetails,
                 userDetails.getPassword(),
                 userDetails.getAuthorities());
     }

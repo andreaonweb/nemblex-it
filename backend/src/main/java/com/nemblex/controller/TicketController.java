@@ -78,6 +78,12 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.assignToMe(id, currentUserId(authentication)));
     }
 
+    @Operation(summary = "Libera la asignacion de la incidencia (el propio asignado, o un supervisor/admin)")
+    @PutMapping("/{id}/unassign")
+    public ResponseEntity<TicketResponse> unassign(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(ticketService.unassign(id, currentUserId(authentication)));
+    }
+
     @Operation(summary = "Clasifica una incidencia con IA (Gemini): propone categoria y prioridad como AuditLog pendiente")
     @PostMapping("/{id}/classify")
     public ResponseEntity<AuditLogResponse> classify(@PathVariable Long id) {

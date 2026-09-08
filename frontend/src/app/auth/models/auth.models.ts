@@ -1,6 +1,7 @@
 export type Role = 'TECHNICIAN' | 'SUPERVISOR' | 'ADMIN';
 
 export interface CurrentUser {
+  id: number;
   email: string;
   role: Role;
 }

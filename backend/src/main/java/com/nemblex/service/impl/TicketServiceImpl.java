@@ -6,6 +6,7 @@ import com.nemblex.dto.response.TicketResponse;
 import com.nemblex.entity.AppUser;
 import com.nemblex.entity.Category;
 import com.nemblex.entity.Ticket;
+import com.nemblex.entity.enums.Role;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.exception.BadRequestException;
@@ -16,6 +17,7 @@ import com.nemblex.repository.CategoryRepository;
 import com.nemblex.repository.TicketRepository;
 import com.nemblex.service.interfaces.TicketService;
 import java.util.List;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -109,10 +111,39 @@ public class TicketServiceImpl implements TicketService {
                     "Ticket " + id + " is already " + ticket.getStatus() + ", cannot be assigned");
         }
 
+        AppUser currentAssignee = ticket.getAssignedTo();
+        if (currentAssignee != null) {
+            if (currentAssignee.getId().equals(userId)) {
+                return ticketMapper.toResponse(ticket);
+            }
+            throw new BadRequestException("Este ticket ya esta asignado a otro tecnico");
+        }
+
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         ticket.setAssignedTo(user);
 
+        return ticketMapper.toResponse(ticketRepository.saveAndFlush(ticket));
+    }
+
+    @Override
+    public TicketResponse unassign(Long id, Long userId) {
+        Ticket ticket = findTicketOrThrow(id);
+        AppUser assignee = ticket.getAssignedTo();
+        if (assignee == null) {
+            throw new BadRequestException("El ticket no esta asignado a nadie");
+        }
+
+        AppUser requester = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        boolean isAssignee = assignee.getId().equals(userId);
+        boolean isPrivileged = requester.getRole() == Role.SUPERVISOR || requester.getRole() == Role.ADMIN;
+        if (!isAssignee && !isPrivileged) {
+            throw new AccessDeniedException("No tenes permiso para liberar esta asignacion");
+        }
+
+        ticket.setAssignedTo(null);
         return ticketMapper.toResponse(ticketRepository.saveAndFlush(ticket));
     }
 

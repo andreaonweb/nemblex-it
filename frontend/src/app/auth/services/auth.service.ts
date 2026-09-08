@@ -46,10 +46,11 @@ export class AuthService {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const role = (payload.role as string | undefined)?.replace('ROLE_', '') as Role | undefined;
-      if (!payload.sub || !role) {
+      const id = payload.uid as number | undefined;
+      if (!payload.sub || !role || id === undefined) {
         return null;
       }
-      return { email: payload.sub, role };
+      return { id, email: payload.sub, role };
     } catch {
       return null;
     }

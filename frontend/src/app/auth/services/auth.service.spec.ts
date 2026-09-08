@@ -5,9 +5,9 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { AuthService } from './auth.service';
 import { environment } from '../../../environments/environment';
 
-function fakeToken(email: string, role: string): string {
+function fakeToken(email: string, role: string, uid = 1): string {
   const header = btoa(JSON.stringify({ alg: 'HS512', typ: 'JWT' }));
-  const payload = btoa(JSON.stringify({ sub: email, role: `ROLE_${role}` }));
+  const payload = btoa(JSON.stringify({ sub: email, role: `ROLE_${role}`, uid }));
   return `${header}.${payload}.fake-signature`;
 }
 
@@ -47,9 +47,9 @@ describe('AuthService', () => {
     service.login({ email: 'beatriz.ruiz@nemblex.dev', password: 'supervisor123' }).subscribe();
 
     const req = httpMock.expectOne(`${environment.apiUrl}/api/auth/login`);
-    req.flush({ token: fakeToken('beatriz.ruiz@nemblex.dev', 'SUPERVISOR'), email: 'beatriz.ruiz@nemblex.dev' });
+    req.flush({ token: fakeToken('beatriz.ruiz@nemblex.dev', 'SUPERVISOR', 2), email: 'beatriz.ruiz@nemblex.dev' });
 
-    expect(service.currentUser()).toEqual({ email: 'beatriz.ruiz@nemblex.dev', role: 'SUPERVISOR' });
+    expect(service.currentUser()).toEqual({ id: 2, email: 'beatriz.ruiz@nemblex.dev', role: 'SUPERVISOR' });
     expect(service.isAuthenticated()).toBeTrue();
   });
 
@@ -57,10 +57,10 @@ describe('AuthService', () => {
     service.login({ email: 'ana.torres@nemblex.dev', password: 'technician123' }).subscribe();
     httpMock
       .expectOne(`${environment.apiUrl}/api/auth/login`)
-      .flush({ token: fakeToken('ana.torres@nemblex.dev', 'TECHNICIAN'), email: 'ana.torres@nemblex.dev' });
+      .flush({ token: fakeToken('ana.torres@nemblex.dev', 'TECHNICIAN', 3), email: 'ana.torres@nemblex.dev' });
 
     const restored = TestBed.inject(AuthService);
-    expect(restored.currentUser()).toEqual({ email: 'ana.torres@nemblex.dev', role: 'TECHNICIAN' });
+    expect(restored.currentUser()).toEqual({ id: 3, email: 'ana.torres@nemblex.dev', role: 'TECHNICIAN' });
   });
 
   it('clears the session on logout', () => {

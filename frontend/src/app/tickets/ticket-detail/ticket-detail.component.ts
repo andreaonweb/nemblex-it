@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, effect, inject, input, signal } from '@angular/core';
+import { Component, EventEmitter, Output, computed, effect, inject, input, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,9 +9,15 @@ import { MatTabsModule } from '@angular/material/tabs';
 
 import { TicketService } from '../services/ticket.service';
 import { AuditLogService } from '../../audit-logs/services/audit-log.service';
+import { AuthService } from '../../auth/services/auth.service';
 import { Ticket } from '../models/ticket.models';
 import { AuditLog } from '../../audit-logs/models/audit-log.models';
 import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS, STATUS_LABELS } from '../models/ticket-labels';
+
+function extractErrorMessage(err: unknown, fallback: string): string {
+  const message = (err as { error?: { message?: string } } | undefined)?.error?.message;
+  return message ?? fallback;
+}
 
 @Component({
   selector: 'app-ticket-detail',
@@ -31,6 +37,7 @@ import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS, STATUS_LABELS } from '
 export class TicketDetailComponent {
   private readonly ticketService = inject(TicketService);
   private readonly auditLogService = inject(AuditLogService);
+  private readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
 
   readonly ticket = input.required<Ticket>();
@@ -48,6 +55,21 @@ export class TicketDetailComponent {
 
   readonly assigning = signal(false);
   readonly assignError = signal<string | null>(null);
+
+  readonly unassigning = signal(false);
+  readonly unassignError = signal<string | null>(null);
+
+  readonly canUnassign = computed(() => {
+    const assignedToId = this.ticket().assignedToId;
+    if (assignedToId === null) {
+      return false;
+    }
+    const user = this.authService.currentUser();
+    if (!user) {
+      return false;
+    }
+    return user.id === assignedToId || user.role === 'SUPERVISOR' || user.role === 'ADMIN';
+  });
 
   readonly resolveOpen = signal(false);
   readonly resolving = signal(false);
@@ -89,9 +111,24 @@ export class TicketDetailComponent {
         this.assigning.set(false);
         this.ticketChanged.emit(updated);
       },
-      error: () => {
+      error: (err) => {
         this.assigning.set(false);
-        this.assignError.set('No se pudo asignar la incidencia.');
+        this.assignError.set(extractErrorMessage(err, 'No se pudo asignar la incidencia.'));
+      }
+    });
+  }
+
+  unassignTicket(): void {
+    this.unassigning.set(true);
+    this.unassignError.set(null);
+    this.ticketService.unassign(this.ticket().id).subscribe({
+      next: (updated) => {
+        this.unassigning.set(false);
+        this.ticketChanged.emit(updated);
+      },
+      error: (err) => {
+        this.unassigning.set(false);
+        this.unassignError.set(extractErrorMessage(err, 'No se pudo liberar la asignación.'));
       }
     });
   }
