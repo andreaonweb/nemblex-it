@@ -120,4 +120,19 @@ public class AuditLogServiceImpl implements AuditLogService {
 
         return auditLogMapper.toResponse(auditLogRepository.saveAndFlush(auditLog));
     }
+
+    @Override
+    public AuditLogResponse undoResolution(Long id) {
+        AuditLog auditLog = auditLogRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("AuditLog", "id", id));
+
+        if (auditLog.getResultStatus() == AuditResultStatus.PENDING) {
+            throw new BadRequestException("AuditLog is not resolved, nothing to undo");
+        }
+
+        auditLog.setResultStatus(AuditResultStatus.PENDING);
+        auditLog.setApprovedBy(null);
+
+        return auditLogMapper.toResponse(auditLogRepository.saveAndFlush(auditLog));
+    }
 }

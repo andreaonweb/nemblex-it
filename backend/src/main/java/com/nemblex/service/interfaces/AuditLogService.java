@@ -16,4 +16,6 @@ public interface AuditLogService {
     AuditLogResponse resolveLog(Long id, AuditLogApprovalRequest dto, Long approvedByUserId);
 
     AuditLogResponse resolveDirectly(AuditLogRequest dto, Long technicianId);
+
+    AuditLogResponse undoResolution(Long id);
 }

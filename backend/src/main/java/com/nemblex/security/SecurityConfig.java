@@ -65,6 +65,8 @@ public class SecurityConfig {
                             .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/audit-logs/*/resolve")
                             .hasAnyRole("SUPERVISOR", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/audit-logs/*/undo")
+                            .hasAnyRole("SUPERVISOR", "ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(authorizationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAt(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
