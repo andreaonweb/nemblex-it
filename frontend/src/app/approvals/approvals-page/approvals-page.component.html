@@ -1,0 +1,60 @@
+<div class="page">
+  <h1 class="page__title">Cola de aprobaciones</h1>
+
+  @if (loading()) {
+    <div class="state-message"><mat-spinner diameter="28" /></div>
+  } @else if (error()) {
+    <p class="state-message state-message--error">{{ error() }}</p>
+  } @else if (cards().length === 0) {
+    <p class="state-message">No hay acciones pendientes de aprobación.</p>
+  } @else {
+    <div class="cards">
+      @for (card of cards(); track card.log.id) {
+        <mat-card class="approval-card" [class.approval-card--resolved]="card.log.resultStatus !== 'PENDING'">
+          <div class="approval-card__header">
+            <span class="approval-card__ticket">Incidencia #{{ card.log.ticketId }}</span>
+            @if (card.ticket) {
+              <span
+                class="approval-card__priority"
+                [style.color]="priorityColors[card.ticket.priority].fg"
+              >{{ priorityLabels[card.ticket.priority] }}</span>
+            }
+          </div>
+
+          @if (card.ticket) {
+            <h2 class="approval-card__subject">{{ card.ticket.title }}</h2>
+            <p class="approval-card__meta">{{ card.ticket.categoryName || 'Sin categoría' }} · {{ card.ticket.createdByName }}</p>
+          } @else {
+            <p class="approval-card__meta">No se pudo cargar el detalle de la incidencia asociada.</p>
+          }
+
+          <p class="approval-card__action"><strong>{{ card.log.action }}</strong></p>
+          @if (card.log.reason) {
+            <p class="approval-card__reason">{{ card.log.reason }}</p>
+          }
+
+          @if (card.error) {
+            <p class="state-message state-message--error">{{ card.error }}</p>
+          }
+
+          @if (card.log.resultStatus === 'PENDING') {
+            <div class="approval-card__actions">
+              <button mat-stroked-button color="warn" [disabled]="card.processing" (click)="reject(card)">Rechazar</button>
+              <button mat-flat-button color="primary" [disabled]="card.processing" (click)="approve(card)">Aprobar</button>
+            </div>
+          } @else {
+            <div class="approval-card__resolved">
+              <span class="approval-card__status">
+                {{ card.log.resultStatus === 'APPROVED' ? 'Aprobado' : 'Rechazado' }}
+                @if (card.log.approvedByName) {
+                  <span> por {{ card.log.approvedByName }}</span>
+                }
+              </span>
+              <button mat-button [disabled]="card.processing" (click)="undoCard(card)">Deshacer</button>
+            </div>
+          }
+        </mat-card>
+      }
+    </div>
+  }
+</div>

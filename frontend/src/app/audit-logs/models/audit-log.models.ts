@@ -15,3 +15,7 @@ export interface AuditLogRequest {
   action: string;
   reason?: string;
 }
+
+export interface AuditLogApprovalRequest {
+  resultStatus: 'APPROVED' | 'REJECTED';
+}

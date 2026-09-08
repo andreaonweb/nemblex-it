@@ -75,4 +75,31 @@ describe('TicketService', () => {
 
     expect(result).toEqual(mockTicket);
   });
+
+  it('fetches a single ticket from GET /api/tickets/{id}', () => {
+    const mockTicket: Ticket = {
+      id: 1,
+      title: 'VPN caída',
+      description: 'desc',
+      status: 'PENDING_APPROVAL',
+      priority: 'HIGH',
+      categoryId: 2,
+      categoryName: 'Redes',
+      createdById: 1,
+      createdByName: 'Ana Torres',
+      assignedToId: 3,
+      assignedToName: 'Carlos Ruiz',
+      createdAt: '2026-09-07T10:00:00',
+      updatedAt: '2026-09-07T10:05:00'
+    };
+
+    let result: Ticket | undefined;
+    service.getById(1).subscribe((ticket) => (result = ticket));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tickets/1`);
+    expect(req.request.method).toBe('GET');
+    req.flush(mockTicket);
+
+    expect(result).toEqual(mockTicket);
+  });
 });

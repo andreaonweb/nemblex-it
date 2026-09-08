@@ -17,4 +17,8 @@ export class TicketService {
   assignToMe(id: number): Observable<Ticket> {
     return this.http.put<Ticket>(`${this.baseUrl}/${id}/assign-to-me`, {});
   }
+
+  getById(id: number): Observable<Ticket> {
+    return this.http.get<Ticket>(`${this.baseUrl}/${id}`);
+  }
 }

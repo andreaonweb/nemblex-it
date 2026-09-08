@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { AuditLog, AuditLogRequest } from '../models/audit-log.models';
+import { AuditLog, AuditLogApprovalRequest, AuditLogRequest } from '../models/audit-log.models';
 
 @Injectable({ providedIn: 'root' })
 export class AuditLogService {
@@ -16,5 +16,17 @@ export class AuditLogService {
 
   resolveNow(request: AuditLogRequest): Observable<AuditLog> {
     return this.http.post<AuditLog>(`${this.baseUrl}/resolve-now`, request);
+  }
+
+  listPending(): Observable<AuditLog[]> {
+    return this.http.get<AuditLog[]>(`${this.baseUrl}/pending`);
+  }
+
+  resolve(id: number, request: AuditLogApprovalRequest): Observable<AuditLog> {
+    return this.http.put<AuditLog>(`${this.baseUrl}/${id}/resolve`, request);
+  }
+
+  undo(id: number): Observable<AuditLog> {
+    return this.http.put<AuditLog>(`${this.baseUrl}/${id}/undo`, {});
   }
 }
