@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { Ticket } from '../models/ticket.models';
+import { Ticket, TicketRequest } from '../models/ticket.models';
 
 @Injectable({ providedIn: 'root' })
 export class TicketService {
@@ -20,5 +20,13 @@ export class TicketService {
 
   getById(id: number): Observable<Ticket> {
     return this.http.get<Ticket>(`${this.baseUrl}/${id}`);
+  }
+
+  create(request: TicketRequest): Observable<Ticket> {
+    return this.http.post<Ticket>(this.baseUrl, request);
+  }
+
+  getMine(): Observable<Ticket[]> {
+    return this.http.get<Ticket[]>(`${this.baseUrl}/mine`);
   }
 }

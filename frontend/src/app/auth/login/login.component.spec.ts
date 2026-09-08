@@ -4,15 +4,15 @@ import { of, throwError } from 'rxjs';
 
 import { LoginComponent } from './login.component';
 import { AuthService } from '../services/auth.service';
-import { JwtResponse, LoginRequest } from '../models/auth.models';
+import { CurrentUser, JwtResponse, LoginRequest } from '../models/auth.models';
 
 describe('LoginComponent', () => {
-  let authServiceStub: { login: jasmine.Spy };
+  let authServiceStub: { login: jasmine.Spy; currentUser: () => CurrentUser | null };
   let router: Router;
   let component: LoginComponent;
 
   beforeEach(() => {
-    authServiceStub = { login: jasmine.createSpy('login') };
+    authServiceStub = { login: jasmine.createSpy('login'), currentUser: () => null };
     TestBed.configureTestingModule({
       imports: [LoginComponent],
       providers: [{ provide: AuthService, useValue: authServiceStub }]
@@ -32,6 +32,7 @@ describe('LoginComponent', () => {
 
   it('calls AuthService.login with the form values and navigates to /tickets on success', () => {
     authServiceStub.login.and.returnValue(of({ token: 'x', email: 'ana.torres@nemblex.dev' } as JwtResponse));
+    authServiceStub.currentUser = () => ({ email: 'ana.torres@nemblex.dev', role: 'TECHNICIAN' });
     component.form.setValue({ email: 'ana.torres@nemblex.dev', password: 'technician123' });
 
     component.submit();
@@ -41,6 +42,16 @@ describe('LoginComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/tickets');
     expect(component.errorMessage()).toBeNull();
     expect(component.submitting()).toBeFalse();
+  });
+
+  it('navigates an EMPLOYEE to /my-tickets on success', () => {
+    authServiceStub.login.and.returnValue(of({ token: 'x', email: 'carlos.mendez@nemblex.dev' } as JwtResponse));
+    authServiceStub.currentUser = () => ({ email: 'carlos.mendez@nemblex.dev', role: 'EMPLOYEE' });
+    component.form.setValue({ email: 'carlos.mendez@nemblex.dev', password: 'employee123' });
+
+    component.submit();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/my-tickets');
   });
 
   it('shows an error message and stops submitting when the login fails', () => {

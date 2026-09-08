@@ -19,4 +19,6 @@ public interface TicketService {
     void deleteTicket(Long id);
 
     TicketResponse assignToMe(Long id, Long userId);
+
+    List<TicketResponse> getMyTickets(Long userId);
 }

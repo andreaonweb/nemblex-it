@@ -5,7 +5,7 @@ CREATE TABLE app_user (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,
     email           VARCHAR(150) NOT NULL UNIQUE,
-    role            VARCHAR(20)  NOT NULL CHECK (role IN ('TECHNICIAN', 'SUPERVISOR', 'ADMIN')),
+    role            VARCHAR(20)  NOT NULL CHECK (role IN ('TECHNICIAN', 'SUPERVISOR', 'ADMIN', 'EMPLOYEE')),
     password_hash   VARCHAR(255) NOT NULL,
     created_at      TIMESTAMP    NOT NULL DEFAULT NOW()
 );

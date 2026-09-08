@@ -40,6 +40,12 @@ describe('ShellComponent', () => {
     expect(component.navItems().map((i) => i.label)).toEqual(['Incidencias', 'Aprobaciones']);
   });
 
+  it('shows only Mis tickets for an EMPLOYEE', () => {
+    authServiceStub.currentUser.set({ email: 'carlos.mendez@nemblex.dev', role: 'EMPLOYEE' });
+
+    expect(component.navItems()).toEqual([{ label: 'Mis tickets', path: '/my-tickets' }]);
+  });
+
   it('logs out and navigates to /login', () => {
     component.logout();
 

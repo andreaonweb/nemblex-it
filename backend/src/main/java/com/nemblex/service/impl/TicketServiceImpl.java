@@ -116,6 +116,14 @@ public class TicketServiceImpl implements TicketService {
         return ticketMapper.toResponse(ticketRepository.saveAndFlush(ticket));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<TicketResponse> getMyTickets(Long userId) {
+        return ticketRepository.findByCreatedById(userId).stream()
+                .map(ticketMapper::toResponse)
+                .toList();
+    }
+
     private Ticket findTicketOrThrow(Long id) {
         return ticketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", id));

@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AuthService } from '../services/auth.service';
+import { defaultRouteForRole } from '../guards/role.guard';
 
 @Component({
   selector: 'app-login',
@@ -48,7 +49,7 @@ export class LoginComponent {
     this.authService.login(this.form.getRawValue()).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.router.navigateByUrl('/tickets');
+        this.router.navigateByUrl(defaultRouteForRole(this.authService.currentUser()?.role));
       },
       error: () => {
         this.submitting.set(false);

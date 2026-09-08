@@ -23,7 +23,8 @@ public class DataSeeder implements CommandLineRunner {
     private static final List<SeedUser> SEED_USERS = List.of(
             new SeedUser("Admin Nemblex", "admin@nemblex.dev", "admin123", Role.ADMIN),
             new SeedUser("Beatriz Ruiz", "beatriz.ruiz@nemblex.dev", "supervisor123", Role.SUPERVISOR),
-            new SeedUser("Ana Torres", "ana.torres@nemblex.dev", "technician123", Role.TECHNICIAN));
+            new SeedUser("Ana Torres", "ana.torres@nemblex.dev", "technician123", Role.TECHNICIAN),
+            new SeedUser("Carlos Mendez", "carlos.mendez@nemblex.dev", "employee123", Role.EMPLOYEE));
 
     private final AppUserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;

@@ -25,8 +25,11 @@ export class ShellComponent {
   readonly currentUser = this.authService.currentUser;
 
   readonly navItems = computed<NavItem[]>(() => {
-    const items: NavItem[] = [{ label: 'Incidencias', path: '/tickets' }];
     const role = this.currentUser()?.role;
+    if (role === 'EMPLOYEE') {
+      return [{ label: 'Mis tickets', path: '/my-tickets' }];
+    }
+    const items: NavItem[] = [{ label: 'Incidencias', path: '/tickets' }];
     if (role === 'SUPERVISOR' || role === 'ADMIN') {
       items.push({ label: 'Aprobaciones', path: '/aprobaciones' });
     }
