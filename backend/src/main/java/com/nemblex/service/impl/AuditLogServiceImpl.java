@@ -8,6 +8,7 @@ import com.nemblex.entity.AuditLog;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.AuditResultStatus;
 import com.nemblex.entity.enums.Role;
+import com.nemblex.entity.enums.TicketAction;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.exception.BadRequestException;
@@ -20,6 +21,7 @@ import com.nemblex.repository.CategoryRepository;
 import com.nemblex.repository.TicketRepository;
 import com.nemblex.service.interfaces.AuditLogService;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -114,15 +116,17 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     private boolean applyApprovedAction(AuditLog auditLog) {
+        Optional<TicketAction> action = TicketAction.fromString(auditLog.getAction());
+        if (action.isEmpty()) {
+            return false;
+        }
+
         Ticket ticket = auditLog.getTicket();
-        switch (auditLog.getAction()) {
-            case "CLOSE" -> ticket.setStatus(TicketStatus.RESOLVED);
-            case "ESCALATE" -> ticket.setStatus(TicketStatus.IN_PROGRESS);
-            case "REASSIGN" -> ticket.setAssignedTo(null);
-            case "AI_CLASSIFY" -> applyAiClassification(auditLog, ticket);
-            default -> {
-                return false;
-            }
+        switch (action.get()) {
+            case CLOSE -> ticket.setStatus(TicketStatus.RESOLVED);
+            case ESCALATE -> ticket.setStatus(TicketStatus.IN_PROGRESS);
+            case REASSIGN -> ticket.setAssignedTo(null);
+            case AI_CLASSIFY -> applyAiClassification(auditLog, ticket);
         }
         return true;
     }
@@ -141,7 +145,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     public AuditLogResponse resolveDirectly(AuditLogRequest dto, Long technicianId) {
         Ticket ticket = ticketRepository.findById(dto.getTicketId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", dto.getTicketId()));
-        if (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED) {
+        if (ticket.getStatus().isTerminal()) {
             throw new BadRequestException(
                     "Ticket " + ticket.getId() + " is already " + ticket.getStatus() + ", nothing to resolve");
         }
@@ -176,17 +180,13 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public AuditLogResponse createAiProposal(Long ticketId, String action, String reasoning, String employeeMessage) {
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
-        if (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED) {
-            throw new BadRequestException(
-                    "Ticket " + ticket.getId() + " is already " + ticket.getStatus() + ", nothing to propose");
-        }
+    public AuditLogResponse createAiProposal(Long ticketId, TicketAction action, String reasoning,
+                                              String employeeMessage) {
+        Ticket ticket = findActionableTicket(ticketId);
 
         AuditLog auditLog = AuditLog.builder()
                 .ticket(ticket)
-                .action(action)
+                .action(action.name())
                 .reason(reasoning)
                 .employeeMessage(employeeMessage)
                 .resultStatus(AuditResultStatus.PENDING)
@@ -198,16 +198,11 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     public AuditLogResponse createAiClassificationProposal(Long ticketId, String reasoning, String employeeMessage,
                                                              String category, TicketPriority priority) {
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
-        if (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED) {
-            throw new BadRequestException(
-                    "Ticket " + ticket.getId() + " is already " + ticket.getStatus() + ", nothing to propose");
-        }
+        Ticket ticket = findActionableTicket(ticketId);
 
         AuditLog auditLog = AuditLog.builder()
                 .ticket(ticket)
-                .action("AI_CLASSIFY")
+                .action(TicketAction.AI_CLASSIFY.name())
                 .reason(reasoning)
                 .employeeMessage(employeeMessage)
                 .proposedCategory(category)
@@ -216,5 +211,15 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .build();
 
         return auditLogMapper.toResponse(auditLogRepository.saveAndFlush(auditLog));
+    }
+
+    private Ticket findActionableTicket(Long ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        if (ticket.getStatus().isTerminal()) {
+            throw new BadRequestException(
+                    "Ticket " + ticket.getId() + " is already " + ticket.getStatus() + ", nothing to propose");
+        }
+        return ticket;
     }
 }

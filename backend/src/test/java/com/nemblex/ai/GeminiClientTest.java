@@ -2,6 +2,7 @@ package com.nemblex.ai;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.nemblex.entity.enums.TicketAction;
 import com.nemblex.entity.enums.TicketPriority;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -131,7 +132,7 @@ class GeminiClientTest {
         Optional<ActionProposal> result = geminiClient.extractActionProposal(raw);
 
         assertThat(result).contains(new ActionProposal(
-                "CLOSE", "Ya existe el ticket #8", "Ya identificamos este problema, no necesitás hacer nada mas."));
+                TicketAction.CLOSE, "Ya existe el ticket #8", "Ya identificamos este problema, no necesitás hacer nada mas."));
     }
 
     @Test

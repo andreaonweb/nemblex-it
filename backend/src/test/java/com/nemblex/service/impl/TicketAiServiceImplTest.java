@@ -18,6 +18,7 @@ import com.nemblex.dto.response.AuditLogResponse;
 import com.nemblex.entity.KnowledgeDocument;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.AuditResultStatus;
+import com.nemblex.entity.enums.TicketAction;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.exception.BadRequestException;
 import com.nemblex.exception.ResourceNotFoundException;
@@ -191,7 +192,7 @@ class TicketAiServiceImplTest {
         // Arrange
         Ticket ticket = vpnTicket();
         ActionProposal proposal = new ActionProposal(
-                "CLOSE", "Duplicado del ticket #8, mismo activo e incidencia",
+                TicketAction.CLOSE, "Duplicado del ticket #8, mismo activo e incidencia",
                 "Ya identificamos este problema, no necesitás hacer nada más.");
         AiClassificationResult classification = new AiClassificationResult(
                 "Impresoras", TicketPriority.LOW, "Coincide con un ticket ya abierto",
@@ -208,7 +209,7 @@ class TicketAiServiceImplTest {
                 "Impresoras", TicketPriority.LOW))
                 .thenReturn(classifyResponse);
         when(auditLogService.createAiProposal(
-                1L, "CLOSE", "Duplicado del ticket #8, mismo activo e incidencia",
+                1L, TicketAction.CLOSE, "Duplicado del ticket #8, mismo activo e incidencia",
                 "Ya identificamos este problema, no necesitás hacer nada más."))
                 .thenReturn(closeResponse);
 
@@ -221,7 +222,7 @@ class TicketAiServiceImplTest {
                 1L, "Coincide con un ticket ya abierto", "Ya identificamos este problema, no necesitás hacer nada más.",
                 "Impresoras", TicketPriority.LOW);
         verify(auditLogService).createAiProposal(
-                1L, "CLOSE", "Duplicado del ticket #8, mismo activo e incidencia",
+                1L, TicketAction.CLOSE, "Duplicado del ticket #8, mismo activo e incidencia",
                 "Ya identificamos este problema, no necesitás hacer nada más.");
     }
 
@@ -249,6 +250,6 @@ class TicketAiServiceImplTest {
 
         // Assert
         assertThat(result).isEqualTo(classifyResponse);
-        verify(auditLogService, never()).createAiProposal(anyLong(), anyString(), anyString(), anyString());
+        verify(auditLogService, never()).createAiProposal(anyLong(), any(), anyString(), anyString());
     }
 }
