@@ -91,8 +91,8 @@
                   <ol class="ticket-detail-panel__activity-list">
                     @for (entry of activity(); track entry.id) {
                       <li>
-                        @if (entry.reason) {
-                          <p class="ticket-detail-panel__reason">{{ entry.reason }}</p>
+                        @if (entry.employeeMessage) {
+                          <p class="ticket-detail-panel__reason">{{ entry.employeeMessage }}</p>
                         }
                         @if (supportLabel(entry); as label) {
                           <span class="ticket-detail-panel__support-label">{{ label }}</span>

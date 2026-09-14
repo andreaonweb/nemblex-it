@@ -17,6 +17,7 @@ public class AuditLogResponse {
     private Long ticketId;
     private String action;
     private String reason;
+    private String employeeMessage;
     private AuditResultStatus resultStatus;
     private String approvedByName;
     private LocalDateTime createdAt;

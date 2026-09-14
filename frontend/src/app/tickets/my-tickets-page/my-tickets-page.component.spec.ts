@@ -33,6 +33,7 @@ function log(overrides: Partial<AuditLog> = {}): AuditLog {
     ticketId: 1,
     action: 'CLOSE',
     reason: 'Ticket duplicado',
+    employeeMessage: 'Ya identificamos este problema, no necesitás hacer nada más.',
     resultStatus: 'APPROVED',
     approvedByName: 'Beatriz Ruiz',
     createdAt: '2026-09-08T10:05:00',
@@ -44,6 +45,7 @@ describe('MyTicketsPageComponent', () => {
   let ticketServiceStub: { getMine: jasmine.Spy; create: jasmine.Spy };
   let auditLogServiceStub: { listByTicket: jasmine.Spy };
   let component: MyTicketsPageComponent;
+  let fixture: ReturnType<typeof TestBed.createComponent<MyTicketsPageComponent>>;
 
   function createComponent(): void {
     TestBed.configureTestingModule({
@@ -54,7 +56,7 @@ describe('MyTicketsPageComponent', () => {
         { provide: AuditLogService, useValue: auditLogServiceStub }
       ]
     });
-    const fixture = TestBed.createComponent(MyTicketsPageComponent);
+    fixture = TestBed.createComponent(MyTicketsPageComponent);
     fixture.detectChanges();
     component = fixture.componentInstance;
   }
@@ -245,4 +247,20 @@ describe('MyTicketsPageComponent', () => {
 
     expect(auditLogServiceStub.listByTicket).toHaveBeenCalledTimes(1);
   }));
+
+  it('shows the employee-facing message and never the internal reason', () => {
+    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    auditLogServiceStub.listByTicket.and.returnValue(of([log({
+      reason: 'Duplicado del ticket #8, cierre segun procedimiento R-dup-01',
+      employeeMessage: 'Ya identificamos este problema, no necesitás hacer nada más.'
+    })]));
+    createComponent();
+
+    component.toggleTicket(1);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Ya identificamos este problema, no necesitás hacer nada más.');
+    expect(text).not.toContain('Duplicado del ticket #8, cierre segun procedimiento R-dup-01');
+  });
 });

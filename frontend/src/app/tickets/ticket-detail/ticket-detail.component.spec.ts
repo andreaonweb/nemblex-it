@@ -93,6 +93,7 @@ describe('TicketDetailComponent', () => {
       ticketId: 9,
       action: 'REINICIO_SERVICIO',
       reason: 'Se reinició el servicio',
+      employeeMessage: null,
       resultStatus: 'APPROVED',
       approvedByName: 'Ana Torres',
       createdAt: '2026-09-07T10:10:00'

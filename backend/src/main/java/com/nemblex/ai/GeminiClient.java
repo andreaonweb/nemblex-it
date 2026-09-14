@@ -20,14 +20,25 @@ public class GeminiClient {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiClient.class);
 
+    static final String DEFAULT_EMPLOYEE_MESSAGE =
+            "Un técnico o supervisor se pondrá en contacto contigo en breve para resolver esta incidencia.";
+
     private static final String CLASSIFICATION_PROMPT = """
             Eres un asistente de clasificacion de incidencias IT. A partir del titulo y la \
             descripcion de una incidencia, propone una categoria breve y una prioridad. Si se \
             te proporciona contexto interno (documentacion de procedimientos), basa tu \
             respuesta en ese contexto cuando sea relevante para el caso, en vez de usar solo \
-            conocimiento general. Responde UNICAMENTE con un objeto JSON, sin texto adicional \
-            ni bloques de codigo markdown, con este formato exacto: \
-            {"category": "<categoria breve>", "priority": "LOW|MEDIUM|HIGH", "reasoning": "<explicacion breve>"}""";
+            conocimiento general. Ademas del razonamiento tecnico interno, redacta un mensaje \
+            breve dirigido directamente al empleado que reporto la incidencia: si el contexto \
+            interno describe un paso concreto que el propio empleado puede ejecutar para \
+            resolver o mitigar el problema, escribilo en segunda persona, con tono cercano y \
+            claro, sin jerga tecnica interna ni referencias a procedimientos, politicas o \
+            IDs de tickets internos. Si el contexto no ofrece ningun paso que el empleado \
+            pueda hacer por su cuenta, o no hay contexto relevante, devolve ese campo como \
+            string vacio "". Responde UNICAMENTE con un objeto JSON, sin texto adicional ni \
+            bloques de codigo markdown, con este formato exacto: \
+            {"category": "<categoria breve>", "priority": "LOW|MEDIUM|HIGH", \
+            "reasoning": "<explicacion breve>", "employeeMessage": "<mensaje para el empleado o \"\">"}""";
 
     private static final String ACTION_PROMPT = """
             Eres un asistente que decide si corresponde proponer una accion concreta sobre una \
@@ -40,7 +51,13 @@ public class GeminiClient {
             afecta a varios usuarios o a un departamento entero de forma simultanea (no un \
             caso individual), propone ESCALATE; si el caso esta fuera del alcance de un \
             tecnico de Nivel 1 y requiere un equipo especializado, propone REASSIGN. Si no hay \
-            evidencia clara para ninguna de esas acciones, no invoques ninguna tool.""";
+            evidencia clara para ninguna de esas acciones, no invoques ninguna tool. Ademas \
+            del motivo tecnico interno, inclui un mensaje breve dirigido directamente al \
+            empleado: si el contexto interno describe un paso concreto que el propio empleado \
+            puede ejecutar por su cuenta, escribilo en segunda persona, con tono cercano y \
+            claro, sin jerga tecnica ni referencias a procedimientos, politicas o IDs de \
+            tickets internos. Si no hay ningun paso que el empleado pueda hacer por su cuenta, \
+            devolve ese campo como string vacio "".""";
 
     private static final Set<String> VALID_ACTIONS = Set.of("CLOSE", "ESCALATE", "REASSIGN");
 
@@ -63,8 +80,13 @@ public class GeminiClient {
                                     "reason", Map.of(
                                             "type", "STRING",
                                             "description", "Justificacion de la accion propuesta, basada en el "
-                                                    + "ticket y el contexto interno.")),
-                            "required", List.of("action", "reason")))));
+                                                    + "ticket y el contexto interno."),
+                                    "employeeMessage", Map.of(
+                                            "type", "STRING",
+                                            "description", "Mensaje breve en segunda persona para el empleado, "
+                                                    + "solo si hay un paso concreto que pueda hacer por su "
+                                                    + "cuenta. String vacio si no aplica.")),
+                            "required", List.of("action", "reason", "employeeMessage")))));
 
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -93,7 +115,8 @@ public class GeminiClient {
 
         ActionProposal proposal = requestActionProposal(title, description, context).orElse(null);
         AiClassificationResult base = classification.get();
-        return Optional.of(new AiClassificationResult(base.category(), base.priority(), base.reasoning(), proposal));
+        return Optional.of(new AiClassificationResult(
+                base.category(), base.priority(), base.reasoning(), base.employeeMessage(), proposal));
     }
 
     private Optional<AiClassificationResult> requestClassification(String title, String description, List<String> context) {
@@ -216,7 +239,14 @@ public class GeminiClient {
         if (!VALID_ACTIONS.contains(normalized)) {
             return null;
         }
-        return new ActionProposal(normalized, reason);
+        String employeeMessage = resolveEmployeeMessage(args.path("employeeMessage").asText(null));
+        return new ActionProposal(normalized, reason, employeeMessage);
+    }
+
+    private String resolveEmployeeMessage(String rawEmployeeMessage) {
+        return rawEmployeeMessage == null || rawEmployeeMessage.isBlank()
+                ? DEFAULT_EMPLOYEE_MESSAGE
+                : rawEmployeeMessage;
     }
 
     Optional<AiClassificationResult> parseModelOutput(String rawText) {
@@ -233,7 +263,8 @@ public class GeminiClient {
             }
 
             TicketPriority priority = TicketPriority.valueOf(priorityRaw.trim().toUpperCase());
-            return Optional.of(new AiClassificationResult(category, priority, reasoning));
+            String employeeMessage = resolveEmployeeMessage(node.path("employeeMessage").asText(null));
+            return Optional.of(new AiClassificationResult(category, priority, reasoning, employeeMessage));
         } catch (Exception ex) {
             log.warn("Could not parse Gemini classification output: {}", ex.getMessage());
             return Optional.empty();

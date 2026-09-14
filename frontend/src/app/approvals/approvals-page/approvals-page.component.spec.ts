@@ -14,6 +14,7 @@ function log(overrides: Partial<AuditLog> = {}): AuditLog {
     ticketId: 9,
     action: 'PROPUESTA_IA',
     reason: 'Reiniciar el servicio de VPN',
+    employeeMessage: null,
     resultStatus: 'PENDING',
     approvedByName: null,
     createdAt: '2026-09-07T10:00:00',

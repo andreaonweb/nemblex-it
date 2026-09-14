@@ -27,6 +27,7 @@ describe('AuditLogService', () => {
         ticketId: 9,
         action: 'REINICIO_SERVICIO',
         reason: 'Se reinició el servicio',
+        employeeMessage: null,
         resultStatus: 'APPROVED',
         approvedByName: 'Ana Torres',
         createdAt: '2026-09-07T10:00:00'
@@ -49,6 +50,7 @@ describe('AuditLogService', () => {
       ticketId: 9,
       action: 'REINICIO_SERVICIO',
       reason: 'Se reinició el servicio',
+      employeeMessage: null,
       resultStatus: 'APPROVED',
       approvedByName: 'Ana Torres',
       createdAt: '2026-09-07T10:00:00'
@@ -72,6 +74,7 @@ describe('AuditLogService', () => {
         ticketId: 9,
         action: 'PROPUESTA_IA',
         reason: 'Reiniciar el servicio de VPN',
+        employeeMessage: null,
         resultStatus: 'PENDING',
         approvedByName: null,
         createdAt: '2026-09-07T10:00:00'
@@ -94,6 +97,7 @@ describe('AuditLogService', () => {
       ticketId: 9,
       action: 'PROPUESTA_IA',
       reason: 'Reiniciar el servicio de VPN',
+      employeeMessage: null,
       resultStatus: 'APPROVED',
       approvedByName: 'Jefe IT',
       createdAt: '2026-09-07T10:00:00'
@@ -116,6 +120,7 @@ describe('AuditLogService', () => {
       ticketId: 9,
       action: 'PROPUESTA_IA',
       reason: 'Reiniciar el servicio de VPN',
+      employeeMessage: null,
       resultStatus: 'PENDING',
       approvedByName: null,
       createdAt: '2026-09-07T10:00:00'

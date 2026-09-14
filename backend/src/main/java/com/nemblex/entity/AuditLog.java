@@ -44,6 +44,9 @@ public class AuditLog {
     @Column(columnDefinition = "text")
     private String reason;
 
+    @Column(name = "employee_message", columnDefinition = "text")
+    private String employeeMessage;
+
     @Column(name = "proposed_category", length = 100)
     private String proposedCategory;
 

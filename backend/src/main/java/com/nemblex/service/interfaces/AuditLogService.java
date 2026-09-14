@@ -21,8 +21,8 @@ public interface AuditLogService {
 
     AuditLogResponse undoResolution(Long id);
 
-    AuditLogResponse createAiProposal(Long ticketId, String action, String reasoning);
+    AuditLogResponse createAiProposal(Long ticketId, String action, String reasoning, String employeeMessage);
 
-    AuditLogResponse createAiClassificationProposal(Long ticketId, String reasoning, String category,
-                                                      TicketPriority priority);
+    AuditLogResponse createAiClassificationProposal(Long ticketId, String reasoning, String employeeMessage,
+                                                      String category, TicketPriority priority);
 }

@@ -548,7 +548,9 @@ class AuditLogServiceImplTest {
         when(auditLogMapper.toResponse(any(AuditLog.class))).thenReturn(expectedResponse);
 
         // Act
-        AuditLogResponse result = auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Palabras clave de VPN detectadas");
+        AuditLogResponse result = auditLogService.createAiProposal(
+                1L, "AI_CLASSIFY", "Palabras clave de VPN detectadas",
+                "Esperá 15 minutos y volvé a intentar conectarte a la VPN.");
 
         // Assert
         assertThat(result).isEqualTo(expectedResponse);
@@ -558,6 +560,7 @@ class AuditLogServiceImplTest {
         assertThat(savedLog.getTicket()).isEqualTo(ticket);
         assertThat(savedLog.getAction()).isEqualTo("AI_CLASSIFY");
         assertThat(savedLog.getReason()).isEqualTo("Palabras clave de VPN detectadas");
+        assertThat(savedLog.getEmployeeMessage()).isEqualTo("Esperá 15 minutos y volvé a intentar conectarte a la VPN.");
         assertThat(savedLog.getResultStatus()).isEqualTo(AuditResultStatus.PENDING);
         assertThat(savedLog.getApprovedBy()).isNull();
     }
@@ -578,13 +581,16 @@ class AuditLogServiceImplTest {
         when(auditLogMapper.toResponse(any(AuditLog.class))).thenReturn(expectedResponse);
 
         // Act
-        AuditLogResponse result = auditLogService.createAiProposal(1L, "CLOSE", "Ticket duplicado del #8");
+        AuditLogResponse result = auditLogService.createAiProposal(
+                1L, "CLOSE", "Ticket duplicado del #8", "Ya identificamos este problema, no necesitás hacer nada más.");
 
         // Assert
         assertThat(result).isEqualTo(expectedResponse);
         ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
         verify(auditLogRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getAction()).isEqualTo("CLOSE");
+        assertThat(captor.getValue().getEmployeeMessage())
+                .isEqualTo("Ya identificamos este problema, no necesitás hacer nada más.");
     }
 
     @Test
@@ -593,7 +599,7 @@ class AuditLogServiceImplTest {
         when(ticketRepository.findById(99L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> auditLogService.createAiProposal(99L, "AI_CLASSIFY", "reasoning"))
+        assertThatThrownBy(() -> auditLogService.createAiProposal(99L, "AI_CLASSIFY", "reasoning", "mensaje"))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }
@@ -605,7 +611,7 @@ class AuditLogServiceImplTest {
         when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
 
         // Act & Assert
-        assertThatThrownBy(() -> auditLogService.createAiProposal(1L, "AI_CLASSIFY", "reasoning"))
+        assertThatThrownBy(() -> auditLogService.createAiProposal(1L, "AI_CLASSIFY", "reasoning", "mensaje"))
                 .isInstanceOf(BadRequestException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }
@@ -617,7 +623,7 @@ class AuditLogServiceImplTest {
         when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
 
         // Act & Assert
-        assertThatThrownBy(() -> auditLogService.createAiProposal(1L, "AI_CLASSIFY", "reasoning"))
+        assertThatThrownBy(() -> auditLogService.createAiProposal(1L, "AI_CLASSIFY", "reasoning", "mensaje"))
                 .isInstanceOf(BadRequestException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }
@@ -639,7 +645,8 @@ class AuditLogServiceImplTest {
 
         // Act
         AuditLogResponse result = auditLogService.createAiClassificationProposal(
-                1L, "Palabras clave de VPN detectadas", "Redes", TicketPriority.HIGH);
+                1L, "Palabras clave de VPN detectadas", "Esperá 15 minutos y volvé a intentar conectarte a la VPN.",
+                "Redes", TicketPriority.HIGH);
 
         // Assert
         assertThat(result).isEqualTo(expectedResponse);
@@ -649,6 +656,7 @@ class AuditLogServiceImplTest {
         assertThat(savedLog.getTicket()).isEqualTo(ticket);
         assertThat(savedLog.getAction()).isEqualTo("AI_CLASSIFY");
         assertThat(savedLog.getReason()).isEqualTo("Palabras clave de VPN detectadas");
+        assertThat(savedLog.getEmployeeMessage()).isEqualTo("Esperá 15 minutos y volvé a intentar conectarte a la VPN.");
         assertThat(savedLog.getProposedCategory()).isEqualTo("Redes");
         assertThat(savedLog.getProposedPriority()).isEqualTo(TicketPriority.HIGH);
         assertThat(savedLog.getResultStatus()).isEqualTo(AuditResultStatus.PENDING);
@@ -661,7 +669,7 @@ class AuditLogServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> auditLogService.createAiClassificationProposal(
-                99L, "reasoning", "Redes", TicketPriority.HIGH))
+                99L, "reasoning", "mensaje", "Redes", TicketPriority.HIGH))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }
@@ -674,7 +682,7 @@ class AuditLogServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> auditLogService.createAiClassificationProposal(
-                1L, "reasoning", "Redes", TicketPriority.HIGH))
+                1L, "reasoning", "mensaje", "Redes", TicketPriority.HIGH))
                 .isInstanceOf(BadRequestException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }

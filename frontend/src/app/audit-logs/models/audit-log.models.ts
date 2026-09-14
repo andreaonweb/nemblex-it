@@ -5,6 +5,7 @@ export interface AuditLog {
   ticketId: number;
   action: string;
   reason: string | null;
+  employeeMessage: string | null;
   resultStatus: AuditResultStatus;
   approvedByName: string | null;
   createdAt: string;

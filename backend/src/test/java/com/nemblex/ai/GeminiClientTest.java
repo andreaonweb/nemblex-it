@@ -8,35 +8,45 @@ import org.junit.jupiter.api.Test;
 
 class GeminiClientTest {
 
+    private static final String DEFAULT_EMPLOYEE_MESSAGE =
+            "Un técnico o supervisor se pondrá en contacto contigo en breve para resolver esta incidencia.";
+
     private final GeminiClient geminiClient = new GeminiClient(
             "https://generativelanguage.googleapis.com/v1beta", "test-key", "gemini-3.6-flash",
             "gemini-embedding-2", 768);
 
     @Test
     void parseModelOutput_shouldParsePlainJson() {
-        String raw = "{\"category\": \"Redes\", \"priority\": \"HIGH\", \"reasoning\": \"Palabras clave de VPN\"}";
+        String raw = "{\"category\": \"Redes\", \"priority\": \"HIGH\", \"reasoning\": \"Palabras clave de VPN\", "
+                + "\"employeeMessage\": \"Esperá 15 minutos y volvé a intentar conectarte a la VPN.\"}";
 
         Optional<AiClassificationResult> result = geminiClient.parseModelOutput(raw);
 
-        assertThat(result).contains(new AiClassificationResult("Redes", TicketPriority.HIGH, "Palabras clave de VPN"));
+        assertThat(result).contains(new AiClassificationResult(
+                "Redes", TicketPriority.HIGH, "Palabras clave de VPN",
+                "Esperá 15 minutos y volvé a intentar conectarte a la VPN."));
     }
 
     @Test
     void parseModelOutput_shouldStripMarkdownJsonCodeFence() {
-        String raw = "```json\n{\"category\": \"Hardware\", \"priority\": \"MEDIUM\", \"reasoning\": \"Fallo de disco\"}\n```";
+        String raw = "```json\n{\"category\": \"Hardware\", \"priority\": \"MEDIUM\", \"reasoning\": \"Fallo de disco\", "
+                + "\"employeeMessage\": \"\"}\n```";
 
         Optional<AiClassificationResult> result = geminiClient.parseModelOutput(raw);
 
-        assertThat(result).contains(new AiClassificationResult("Hardware", TicketPriority.MEDIUM, "Fallo de disco"));
+        assertThat(result).contains(new AiClassificationResult(
+                "Hardware", TicketPriority.MEDIUM, "Fallo de disco", DEFAULT_EMPLOYEE_MESSAGE));
     }
 
     @Test
     void parseModelOutput_shouldStripPlainCodeFenceWithoutLanguageTag() {
-        String raw = "```\n{\"category\": \"Software\", \"priority\": \"LOW\", \"reasoning\": \"Actualizacion pendiente\"}\n```";
+        String raw = "```\n{\"category\": \"Software\", \"priority\": \"LOW\", \"reasoning\": \"Actualizacion pendiente\", "
+                + "\"employeeMessage\": \"\"}\n```";
 
         Optional<AiClassificationResult> result = geminiClient.parseModelOutput(raw);
 
-        assertThat(result).contains(new AiClassificationResult("Software", TicketPriority.LOW, "Actualizacion pendiente"));
+        assertThat(result).contains(new AiClassificationResult(
+                "Software", TicketPriority.LOW, "Actualizacion pendiente", DEFAULT_EMPLOYEE_MESSAGE));
     }
 
     @Test
@@ -57,11 +67,31 @@ class GeminiClientTest {
 
     @Test
     void parseModelOutput_shouldReturnEmpty_whenPriorityIsNotAValidEnumValue() {
-        String raw = "{\"category\": \"Redes\", \"priority\": \"URGENTE\", \"reasoning\": \"algo\"}";
+        String raw = "{\"category\": \"Redes\", \"priority\": \"URGENTE\", \"reasoning\": \"algo\", \"employeeMessage\": \"\"}";
 
         Optional<AiClassificationResult> result = geminiClient.parseModelOutput(raw);
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void parseModelOutput_shouldFallBackToDefaultEmployeeMessage_whenFieldIsMissing() {
+        String raw = "{\"category\": \"Redes\", \"priority\": \"HIGH\", \"reasoning\": \"algo\"}";
+
+        Optional<AiClassificationResult> result = geminiClient.parseModelOutput(raw);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().employeeMessage()).isEqualTo(DEFAULT_EMPLOYEE_MESSAGE);
+    }
+
+    @Test
+    void parseModelOutput_shouldFallBackToDefaultEmployeeMessage_whenFieldIsBlank() {
+        String raw = "{\"category\": \"Redes\", \"priority\": \"HIGH\", \"reasoning\": \"algo\", \"employeeMessage\": \"   \"}";
+
+        Optional<AiClassificationResult> result = geminiClient.parseModelOutput(raw);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().employeeMessage()).isEqualTo(DEFAULT_EMPLOYEE_MESSAGE);
     }
 
     @Test
@@ -94,12 +124,41 @@ class GeminiClientTest {
     void extractActionProposal_shouldParseAction_whenModelCallsProposeActionTool() {
         String raw = """
                 {"candidates": [{"content": {"parts": [
-                    {"functionCall": {"name": "proposeAction", "args": {"action": "CLOSE", "reason": "Ya existe el ticket #8"}}}
+                    {"functionCall": {"name": "proposeAction", "args": {"action": "CLOSE", "reason": "Ya existe el ticket #8", \
+                "employeeMessage": "Ya identificamos este problema, no necesitás hacer nada mas."}}}
                 ]}}]}""";
 
         Optional<ActionProposal> result = geminiClient.extractActionProposal(raw);
 
-        assertThat(result).contains(new ActionProposal("CLOSE", "Ya existe el ticket #8"));
+        assertThat(result).contains(new ActionProposal(
+                "CLOSE", "Ya existe el ticket #8", "Ya identificamos este problema, no necesitás hacer nada mas."));
+    }
+
+    @Test
+    void extractActionProposal_shouldFallBackToDefaultEmployeeMessage_whenFieldIsBlank() {
+        String raw = """
+                {"candidates": [{"content": {"parts": [
+                    {"functionCall": {"name": "proposeAction", "args": {"action": "ESCALATE", "reason": "afecta a toda la planta", \
+                "employeeMessage": ""}}}
+                ]}}]}""";
+
+        Optional<ActionProposal> result = geminiClient.extractActionProposal(raw);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().employeeMessage()).isEqualTo(DEFAULT_EMPLOYEE_MESSAGE);
+    }
+
+    @Test
+    void extractActionProposal_shouldFallBackToDefaultEmployeeMessage_whenFieldIsMissing() {
+        String raw = """
+                {"candidates": [{"content": {"parts": [
+                    {"functionCall": {"name": "proposeAction", "args": {"action": "ESCALATE", "reason": "afecta a toda la planta"}}}
+                ]}}]}""";
+
+        Optional<ActionProposal> result = geminiClient.extractActionProposal(raw);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().employeeMessage()).isEqualTo(DEFAULT_EMPLOYEE_MESSAGE);
     }
 
     @Test

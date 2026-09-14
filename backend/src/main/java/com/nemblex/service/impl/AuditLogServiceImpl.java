@@ -176,7 +176,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public AuditLogResponse createAiProposal(Long ticketId, String action, String reasoning) {
+    public AuditLogResponse createAiProposal(Long ticketId, String action, String reasoning, String employeeMessage) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
         if (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED) {
@@ -188,6 +188,7 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .ticket(ticket)
                 .action(action)
                 .reason(reasoning)
+                .employeeMessage(employeeMessage)
                 .resultStatus(AuditResultStatus.PENDING)
                 .build();
 
@@ -195,8 +196,8 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public AuditLogResponse createAiClassificationProposal(Long ticketId, String reasoning, String category,
-                                                             TicketPriority priority) {
+    public AuditLogResponse createAiClassificationProposal(Long ticketId, String reasoning, String employeeMessage,
+                                                             String category, TicketPriority priority) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
         if (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED) {
@@ -208,6 +209,7 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .ticket(ticket)
                 .action("AI_CLASSIFY")
                 .reason(reasoning)
+                .employeeMessage(employeeMessage)
                 .proposedCategory(category)
                 .proposedPriority(priority)
                 .resultStatus(AuditResultStatus.PENDING)
