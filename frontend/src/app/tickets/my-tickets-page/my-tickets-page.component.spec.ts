@@ -4,7 +4,9 @@ import { of, throwError } from 'rxjs';
 
 import { MyTicketsPageComponent } from './my-tickets-page.component';
 import { TicketService } from '../services/ticket.service';
+import { AuditLogService } from '../../audit-logs/services/audit-log.service';
 import { Ticket } from '../models/ticket.models';
+import { AuditLog } from '../../audit-logs/models/audit-log.models';
 
 function ticket(overrides: Partial<Ticket> = {}): Ticket {
   return {
@@ -25,14 +27,32 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
   };
 }
 
+function log(overrides: Partial<AuditLog> = {}): AuditLog {
+  return {
+    id: 1,
+    ticketId: 1,
+    action: 'CLOSE',
+    reason: 'Ticket duplicado',
+    resultStatus: 'APPROVED',
+    approvedByName: 'Beatriz Ruiz',
+    createdAt: '2026-09-08T10:05:00',
+    ...overrides
+  };
+}
+
 describe('MyTicketsPageComponent', () => {
   let ticketServiceStub: { getMine: jasmine.Spy; create: jasmine.Spy };
+  let auditLogServiceStub: { listByTicket: jasmine.Spy };
   let component: MyTicketsPageComponent;
 
   function createComponent(): void {
     TestBed.configureTestingModule({
       imports: [MyTicketsPageComponent],
-      providers: [provideNoopAnimations(), { provide: TicketService, useValue: ticketServiceStub }]
+      providers: [
+        provideNoopAnimations(),
+        { provide: TicketService, useValue: ticketServiceStub },
+        { provide: AuditLogService, useValue: auditLogServiceStub }
+      ]
     });
     const fixture = TestBed.createComponent(MyTicketsPageComponent);
     fixture.detectChanges();
@@ -43,6 +63,9 @@ describe('MyTicketsPageComponent', () => {
     ticketServiceStub = {
       getMine: jasmine.createSpy('getMine').and.returnValue(of([] as Ticket[])),
       create: jasmine.createSpy('create')
+    };
+    auditLogServiceStub = {
+      listByTicket: jasmine.createSpy('listByTicket').and.returnValue(of([] as AuditLog[]))
     };
   });
 
@@ -109,5 +132,65 @@ describe('MyTicketsPageComponent', () => {
 
     expect(component.submitError()).not.toBeNull();
     expect(component.submitting()).toBeFalse();
+  });
+
+  it('expands a ticket and fetches its audit trail', () => {
+    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    auditLogServiceStub.listByTicket.and.returnValue(of([log()]));
+    createComponent();
+
+    component.toggleTicket(1);
+
+    expect(component.expandedTicketId()).toBe(1);
+    expect(auditLogServiceStub.listByTicket).toHaveBeenCalledWith(1);
+    expect(component.activity()).toEqual([log()]);
+    expect(component.activityLoading()).toBeFalse();
+  });
+
+  it('collapses an expanded ticket when clicked again', () => {
+    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    createComponent();
+    component.toggleTicket(1);
+
+    component.toggleTicket(1);
+
+    expect(component.expandedTicketId()).toBeNull();
+  });
+
+  it('switches to another ticket and refetches its audit trail', () => {
+    ticketServiceStub.getMine.and.returnValue(of([ticket(), ticket({ id: 2 })]));
+    auditLogServiceStub.listByTicket.and.returnValue(of([log()]));
+    createComponent();
+    component.toggleTicket(1);
+
+    component.toggleTicket(2);
+
+    expect(component.expandedTicketId()).toBe(2);
+    expect(auditLogServiceStub.listByTicket).toHaveBeenCalledWith(2);
+  });
+
+  it('leaves activity empty and stops loading when the audit trail fetch fails', () => {
+    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    auditLogServiceStub.listByTicket.and.returnValue(throwError(() => new Error('boom')));
+    createComponent();
+
+    component.toggleTicket(1);
+
+    expect(component.activity()).toEqual([]);
+    expect(component.activityLoading()).toBeFalse();
+  });
+
+  it('returns a generic support-team label for approved audit entries', () => {
+    createComponent();
+
+    expect(component.supportLabel(log({ resultStatus: 'APPROVED' })))
+      .toBe('Revisado y aprobado por el equipo de soporte');
+  });
+
+  it('returns null as the support label for pending or rejected entries', () => {
+    createComponent();
+
+    expect(component.supportLabel(log({ resultStatus: 'PENDING' }))).toBeNull();
+    expect(component.supportLabel(log({ resultStatus: 'REJECTED' }))).toBeNull();
   });
 });

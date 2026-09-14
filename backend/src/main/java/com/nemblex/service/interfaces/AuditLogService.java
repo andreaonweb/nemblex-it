@@ -3,6 +3,7 @@ package com.nemblex.service.interfaces;
 import com.nemblex.dto.request.AuditLogApprovalRequest;
 import com.nemblex.dto.request.AuditLogRequest;
 import com.nemblex.dto.response.AuditLogResponse;
+import com.nemblex.entity.AppUser;
 import com.nemblex.entity.enums.TicketPriority;
 import java.util.List;
 
@@ -10,7 +11,7 @@ public interface AuditLogService {
 
     AuditLogResponse createLog(AuditLogRequest dto);
 
-    List<AuditLogResponse> getLogsByTicket(Long ticketId);
+    List<AuditLogResponse> getLogsByTicket(Long ticketId, AppUser requestingUser);
 
     List<AuditLogResponse> getAllPending();
 

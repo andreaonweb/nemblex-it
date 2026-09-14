@@ -54,8 +54,9 @@ public class AuditLogController {
 
     @Operation(summary = "Lista los registros de auditoria de una incidencia concreta")
     @GetMapping("/ticket/{ticketId}")
-    public ResponseEntity<List<AuditLogResponse>> getByTicket(@PathVariable Long ticketId) {
-        return ResponseEntity.ok(auditLogService.getLogsByTicket(ticketId));
+    public ResponseEntity<List<AuditLogResponse>> getByTicket(@PathVariable Long ticketId,
+                                                              Authentication authentication) {
+        return ResponseEntity.ok(auditLogService.getLogsByTicket(ticketId, currentUser(authentication)));
     }
 
     @Operation(summary = "Lista los registros de auditoria pendientes de aprobacion (SUPERVISOR o ADMIN)")
@@ -80,9 +81,12 @@ public class AuditLogController {
     }
 
     private Long currentUserId(Authentication authentication) {
+        return currentUser(authentication).getId();
+    }
+
+    private AppUser currentUser(Authentication authentication) {
         String email = authentication.getName();
-        AppUser user = userRepository.findByEmail(email)
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
-        return user.getId();
     }
 }

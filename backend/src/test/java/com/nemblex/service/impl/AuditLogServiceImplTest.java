@@ -16,9 +16,11 @@ import com.nemblex.entity.AuditLog;
 import com.nemblex.entity.Category;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.AuditResultStatus;
+import com.nemblex.entity.enums.Role;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.exception.BadRequestException;
+import com.nemblex.exception.ForbiddenException;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.mapper.AuditLogMapper;
 import com.nemblex.repository.AppUserRepository;
@@ -112,19 +114,67 @@ class AuditLogServiceImplTest {
     }
 
     @Test
-    void getLogsByTicket_shouldReturnLogsForTicket() {
+    void getLogsByTicket_shouldReturnLogsForTicket_whenRequesterIsSupervisor() {
         // Arrange
         AuditLog log = AuditLog.builder().id(1L).build();
         AuditLogResponse response = AuditLogResponse.builder().id(1L).build();
+        AppUser supervisor = AppUser.builder().id(2L).role(Role.SUPERVISOR).build();
         when(auditLogRepository.findByTicketId(1L)).thenReturn(List.of(log));
         when(auditLogMapper.toResponse(log)).thenReturn(response);
 
         // Act
-        List<AuditLogResponse> result = auditLogService.getLogsByTicket(1L);
+        List<AuditLogResponse> result = auditLogService.getLogsByTicket(1L, supervisor);
 
         // Assert
         assertThat(result).containsExactly(response);
         verify(auditLogRepository).findByTicketId(1L);
+        verify(ticketRepository, never()).findById(any());
+    }
+
+    @Test
+    void getLogsByTicket_shouldReturnLogs_whenEmployeeOwnsTicket() {
+        // Arrange
+        AppUser employee = AppUser.builder().id(9L).role(Role.EMPLOYEE).build();
+        Ticket ticket = Ticket.builder().id(1L).createdBy(employee).build();
+        AuditLog log = AuditLog.builder().id(1L).ticket(ticket).build();
+        AuditLogResponse response = AuditLogResponse.builder().id(1L).build();
+
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+        when(auditLogRepository.findByTicketId(1L)).thenReturn(List.of(log));
+        when(auditLogMapper.toResponse(log)).thenReturn(response);
+
+        // Act
+        List<AuditLogResponse> result = auditLogService.getLogsByTicket(1L, employee);
+
+        // Assert
+        assertThat(result).containsExactly(response);
+    }
+
+    @Test
+    void getLogsByTicket_shouldThrowForbiddenException_whenEmployeeDoesNotOwnTicket() {
+        // Arrange
+        AppUser owner = AppUser.builder().id(9L).role(Role.EMPLOYEE).build();
+        AppUser otherEmployee = AppUser.builder().id(10L).role(Role.EMPLOYEE).build();
+        Ticket ticket = Ticket.builder().id(1L).createdBy(owner).build();
+
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+        // Act & Assert
+        assertThatThrownBy(() -> auditLogService.getLogsByTicket(1L, otherEmployee))
+                .isInstanceOf(ForbiddenException.class);
+        verify(auditLogRepository, never()).findByTicketId(any());
+    }
+
+    @Test
+    void getLogsByTicket_shouldThrowResourceNotFoundException_whenEmployeeAndTicketNotExists() {
+        // Arrange
+        AppUser employee = AppUser.builder().id(9L).role(Role.EMPLOYEE).build();
+        when(ticketRepository.findById(99L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> auditLogService.getLogsByTicket(99L, employee))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(auditLogRepository, never()).findByTicketId(any());
     }
 
     @Test

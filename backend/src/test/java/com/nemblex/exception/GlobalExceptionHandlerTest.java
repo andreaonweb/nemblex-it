@@ -23,4 +23,19 @@ class GlobalExceptionHandlerTest {
         assertThat(body.getMessage()).isEqualTo("An unexpected error occurred");
         assertThat(body.getMessage()).doesNotContain("character varying");
     }
+
+    @Test
+    void handleForbidden_shouldReturn403WithMessage() {
+        // Arrange
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/audit-logs/ticket/1");
+        ForbiddenException ex = new ForbiddenException("No tenes acceso a este ticket");
+
+        // Act
+        var response = handler.handleForbidden(ex, request);
+
+        // Assert
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody().getMessage()).isEqualTo("No tenes acceso a este ticket");
+        assertThat(response.getBody().getPath()).isEqualTo("/api/audit-logs/ticket/1");
+    }
 }

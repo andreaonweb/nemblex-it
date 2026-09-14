@@ -8,8 +8,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { TicketService } from '../services/ticket.service';
+import { AuditLogService } from '../../audit-logs/services/audit-log.service';
 import { Ticket } from '../models/ticket.models';
-import { STATUS_COLORS, STATUS_LABELS } from '../models/ticket-labels';
+import { AuditLog } from '../../audit-logs/models/audit-log.models';
+import { PRIORITY_LABELS, STATUS_COLORS, STATUS_LABELS } from '../models/ticket-labels';
 
 @Component({
   selector: 'app-my-tickets-page',
@@ -28,10 +30,12 @@ import { STATUS_COLORS, STATUS_LABELS } from '../models/ticket-labels';
 })
 export class MyTicketsPageComponent implements OnInit {
   private readonly ticketService = inject(TicketService);
+  private readonly auditLogService = inject(AuditLogService);
   private readonly fb = inject(FormBuilder);
 
   protected readonly statusLabels = STATUS_LABELS;
   protected readonly statusColors = STATUS_COLORS;
+  protected readonly priorityLabels = PRIORITY_LABELS;
 
   readonly tickets = signal<Ticket[]>([]);
   readonly loading = signal(false);
@@ -40,6 +44,10 @@ export class MyTicketsPageComponent implements OnInit {
   readonly formOpen = signal(false);
   readonly submitting = signal(false);
   readonly submitError = signal<string | null>(null);
+
+  readonly expandedTicketId = signal<number | null>(null);
+  readonly activity = signal<AuditLog[]>([]);
+  readonly activityLoading = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -91,5 +99,27 @@ export class MyTicketsPageComponent implements OnInit {
         this.submitError.set('No se pudo crear el ticket.');
       }
     });
+  }
+
+  toggleTicket(ticketId: number): void {
+    if (this.expandedTicketId() === ticketId) {
+      this.expandedTicketId.set(null);
+      return;
+    }
+
+    this.expandedTicketId.set(ticketId);
+    this.activity.set([]);
+    this.activityLoading.set(true);
+    this.auditLogService.listByTicket(ticketId).subscribe({
+      next: (logs) => {
+        this.activity.set(logs);
+        this.activityLoading.set(false);
+      },
+      error: () => this.activityLoading.set(false)
+    });
+  }
+
+  supportLabel(entry: AuditLog): string | null {
+    return entry.resultStatus === 'APPROVED' ? 'Revisado y aprobado por el equipo de soporte' : null;
   }
 }

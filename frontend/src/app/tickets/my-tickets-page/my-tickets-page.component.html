@@ -50,14 +50,60 @@
     <ul class="ticket-list">
       @for (t of tickets(); track t.id) {
         <li class="ticket-list__item">
-          <span class="ticket-list__title">{{ t.title }}</span>
-          <span
-            class="status-chip"
-            [style.background]="statusColors[t.status].bg"
-            [style.color]="statusColors[t.status].fg"
-            [style.border-color]="statusColors[t.status].bc"
-          >{{ statusLabels[t.status] }}</span>
-          <span class="ticket-list__date">{{ t.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+          <button
+            type="button"
+            class="ticket-list__row"
+            [attr.aria-expanded]="expandedTicketId() === t.id"
+            (click)="toggleTicket(t.id)"
+          >
+            <span class="ticket-list__title">{{ t.title }}</span>
+            <span
+              class="status-chip"
+              [style.background]="statusColors[t.status].bg"
+              [style.color]="statusColors[t.status].fg"
+              [style.border-color]="statusColors[t.status].bc"
+            >{{ statusLabels[t.status] }}</span>
+            <span class="ticket-list__date">{{ t.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </button>
+
+          @if (expandedTicketId() === t.id) {
+            <div class="ticket-detail-panel">
+              <p class="ticket-detail-panel__description">{{ t.description }}</p>
+
+              <dl class="ticket-detail-panel__fields">
+                <div>
+                  <dt>Categoría</dt>
+                  <dd>{{ t.categoryName || 'Sin clasificar todavía' }}</dd>
+                </div>
+                <div>
+                  <dt>Prioridad</dt>
+                  <dd>{{ priorityLabels[t.priority] }}</dd>
+                </div>
+              </dl>
+
+              <div class="ticket-detail-panel__activity">
+                <h3>Resolución</h3>
+                @if (activityLoading()) {
+                  <mat-spinner diameter="22" />
+                } @else if (activity().length === 0) {
+                  <p class="ticket-detail-panel__analyzing">Analizando tu incidencia...</p>
+                } @else {
+                  <ol class="ticket-detail-panel__activity-list">
+                    @for (entry of activity(); track entry.id) {
+                      <li>
+                        @if (entry.reason) {
+                          <p class="ticket-detail-panel__reason">{{ entry.reason }}</p>
+                        }
+                        @if (supportLabel(entry); as label) {
+                          <span class="ticket-detail-panel__support-label">{{ label }}</span>
+                        }
+                      </li>
+                    }
+                  </ol>
+                }
+              </div>
+            </div>
+          }
         </li>
       }
     </ul>

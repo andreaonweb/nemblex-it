@@ -7,9 +7,11 @@ import com.nemblex.entity.AppUser;
 import com.nemblex.entity.AuditLog;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.AuditResultStatus;
+import com.nemblex.entity.enums.Role;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.exception.BadRequestException;
+import com.nemblex.exception.ForbiddenException;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.mapper.AuditLogMapper;
 import com.nemblex.repository.AppUserRepository;
@@ -61,7 +63,15 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AuditLogResponse> getLogsByTicket(Long ticketId) {
+    public List<AuditLogResponse> getLogsByTicket(Long ticketId, AppUser requestingUser) {
+        if (requestingUser.getRole() == Role.EMPLOYEE) {
+            Ticket ticket = ticketRepository.findById(ticketId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+            if (!ticket.getCreatedBy().getId().equals(requestingUser.getId())) {
+                throw new ForbiddenException("No tenes acceso a la auditoria de este ticket");
+            }
+        }
+
         return auditLogRepository.findByTicketId(ticketId).stream()
                 .map(auditLogMapper::toResponse)
                 .toList();
