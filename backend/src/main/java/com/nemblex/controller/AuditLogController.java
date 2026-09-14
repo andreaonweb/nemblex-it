@@ -3,9 +3,7 @@ package com.nemblex.controller;
 import com.nemblex.dto.request.AuditLogApprovalRequest;
 import com.nemblex.dto.request.AuditLogRequest;
 import com.nemblex.dto.response.AuditLogResponse;
-import com.nemblex.entity.AppUser;
-import com.nemblex.exception.ResourceNotFoundException;
-import com.nemblex.repository.AppUserRepository;
+import com.nemblex.security.AuthenticatedUserResolver;
 import com.nemblex.service.interfaces.AuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -26,11 +24,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuditLogController {
 
     private final AuditLogService auditLogService;
-    private final AppUserRepository userRepository;
+    private final AuthenticatedUserResolver userResolver;
 
-    public AuditLogController(AuditLogService auditLogService, AppUserRepository userRepository) {
+    public AuditLogController(AuditLogService auditLogService, AuthenticatedUserResolver userResolver) {
         this.auditLogService = auditLogService;
-        this.userRepository = userRepository;
+        this.userResolver = userResolver;
     }
 
     @Operation(summary = "Registra una accion de auditoria sobre una incidencia en estado PENDING")
@@ -46,7 +44,7 @@ public class AuditLogController {
     @PostMapping("/resolve-now")
     public ResponseEntity<AuditLogResponse> resolveNow(@Valid @RequestBody AuditLogRequest request,
                                                         Authentication authentication) {
-        AuditLogResponse resolved = auditLogService.resolveDirectly(request, currentUserId(authentication));
+        AuditLogResponse resolved = auditLogService.resolveDirectly(request, userResolver.resolveId(authentication));
         return ResponseEntity
                 .created(URI.create("/api/audit-logs/" + resolved.getId()))
                 .body(resolved);
@@ -56,7 +54,7 @@ public class AuditLogController {
     @GetMapping("/ticket/{ticketId}")
     public ResponseEntity<List<AuditLogResponse>> getByTicket(@PathVariable Long ticketId,
                                                               Authentication authentication) {
-        return ResponseEntity.ok(auditLogService.getLogsByTicket(ticketId, currentUser(authentication)));
+        return ResponseEntity.ok(auditLogService.getLogsByTicket(ticketId, userResolver.resolve(authentication)));
     }
 
     @Operation(summary = "Lista los registros de auditoria pendientes de aprobacion (SUPERVISOR o ADMIN)")
@@ -71,22 +69,12 @@ public class AuditLogController {
                                                     @Valid @RequestBody AuditLogApprovalRequest request,
                                                     Authentication authentication) {
         return ResponseEntity.ok(
-                auditLogService.resolveLog(id, request, currentUserId(authentication)));
+                auditLogService.resolveLog(id, request, userResolver.resolveId(authentication)));
     }
 
     @Operation(summary = "Deshace la resolucion de un registro de auditoria, volviendolo a PENDING (SUPERVISOR o ADMIN)")
     @PutMapping("/{id}/undo")
     public ResponseEntity<AuditLogResponse> undo(@PathVariable Long id) {
         return ResponseEntity.ok(auditLogService.undoResolution(id));
-    }
-
-    private Long currentUserId(Authentication authentication) {
-        return currentUser(authentication).getId();
-    }
-
-    private AppUser currentUser(Authentication authentication) {
-        String email = authentication.getName();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
     }
 }

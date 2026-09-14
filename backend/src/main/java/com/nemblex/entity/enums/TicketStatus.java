@@ -6,5 +6,9 @@ public enum TicketStatus {
     IN_PROGRESS,
     PENDING_APPROVAL,
     RESOLVED,
-    CLOSED
+    CLOSED;
+
+    public boolean isTerminal() {
+        return this == RESOLVED || this == CLOSED;
+    }
 }

@@ -17,6 +17,7 @@ import com.nemblex.entity.Category;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.AuditResultStatus;
 import com.nemblex.entity.enums.Role;
+import com.nemblex.entity.enums.TicketAction;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.exception.BadRequestException;
@@ -549,7 +550,7 @@ class AuditLogServiceImplTest {
 
         // Act
         AuditLogResponse result = auditLogService.createAiProposal(
-                1L, "AI_CLASSIFY", "Palabras clave de VPN detectadas",
+                1L, TicketAction.AI_CLASSIFY, "Palabras clave de VPN detectadas",
                 "Esperá 15 minutos y volvé a intentar conectarte a la VPN.");
 
         // Assert
@@ -582,7 +583,7 @@ class AuditLogServiceImplTest {
 
         // Act
         AuditLogResponse result = auditLogService.createAiProposal(
-                1L, "CLOSE", "Ticket duplicado del #8", "Ya identificamos este problema, no necesitás hacer nada más.");
+                1L, TicketAction.CLOSE, "Ticket duplicado del #8", "Ya identificamos este problema, no necesitás hacer nada más.");
 
         // Assert
         assertThat(result).isEqualTo(expectedResponse);
@@ -599,7 +600,7 @@ class AuditLogServiceImplTest {
         when(ticketRepository.findById(99L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> auditLogService.createAiProposal(99L, "AI_CLASSIFY", "reasoning", "mensaje"))
+        assertThatThrownBy(() -> auditLogService.createAiProposal(99L, TicketAction.AI_CLASSIFY, "reasoning", "mensaje"))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }
@@ -611,7 +612,7 @@ class AuditLogServiceImplTest {
         when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
 
         // Act & Assert
-        assertThatThrownBy(() -> auditLogService.createAiProposal(1L, "AI_CLASSIFY", "reasoning", "mensaje"))
+        assertThatThrownBy(() -> auditLogService.createAiProposal(1L, TicketAction.AI_CLASSIFY, "reasoning", "mensaje"))
                 .isInstanceOf(BadRequestException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }
@@ -623,7 +624,7 @@ class AuditLogServiceImplTest {
         when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
 
         // Act & Assert
-        assertThatThrownBy(() -> auditLogService.createAiProposal(1L, "AI_CLASSIFY", "reasoning", "mensaje"))
+        assertThatThrownBy(() -> auditLogService.createAiProposal(1L, TicketAction.AI_CLASSIFY, "reasoning", "mensaje"))
                 .isInstanceOf(BadRequestException.class);
         verify(auditLogRepository, never()).saveAndFlush(any());
     }

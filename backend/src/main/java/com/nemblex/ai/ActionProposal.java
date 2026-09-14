@@ -1,4 +1,6 @@
 package com.nemblex.ai;
 
-public record ActionProposal(String action, String reason, String employeeMessage) {
+import com.nemblex.entity.enums.TicketAction;
+
+public record ActionProposal(TicketAction action, String reason, String employeeMessage) {
 }

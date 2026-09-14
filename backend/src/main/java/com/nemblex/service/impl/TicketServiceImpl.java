@@ -114,7 +114,7 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public TicketResponse assignToMe(Long id, Long userId) {
         Ticket ticket = findTicketOrThrow(id);
-        if (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED) {
+        if (ticket.getStatus().isTerminal()) {
             throw new BadRequestException(
                     "Ticket " + id + " is already " + ticket.getStatus() + ", cannot be assigned");
         }

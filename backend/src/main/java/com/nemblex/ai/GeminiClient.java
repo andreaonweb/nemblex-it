@@ -2,8 +2,10 @@ package com.nemblex.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nemblex.entity.enums.TicketAction;
 import com.nemblex.entity.enums.TicketPriority;
 import java.time.Duration;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -59,7 +61,8 @@ public class GeminiClient {
             tickets internos. Si no hay ningun paso que el empleado pueda hacer por su cuenta, \
             devolve ese campo como string vacio "".""";
 
-    private static final Set<String> VALID_ACTIONS = Set.of("CLOSE", "ESCALATE", "REASSIGN");
+    private static final Set<TicketAction> PROPOSABLE_ACTIONS =
+            EnumSet.of(TicketAction.CLOSE, TicketAction.ESCALATE, TicketAction.REASSIGN);
 
     private static final Map<String, Object> PROPOSE_ACTION_TOOL = Map.of(
             "functionDeclarations", List.of(Map.of(
@@ -235,8 +238,10 @@ public class GeminiClient {
         if (action == null || reason == null) {
             return null;
         }
-        String normalized = action.trim().toUpperCase();
-        if (!VALID_ACTIONS.contains(normalized)) {
+        TicketAction normalized = TicketAction.fromString(action.trim().toUpperCase())
+                .filter(PROPOSABLE_ACTIONS::contains)
+                .orElse(null);
+        if (normalized == null) {
             return null;
         }
         String employeeMessage = resolveEmployeeMessage(args.path("employeeMessage").asText(null));

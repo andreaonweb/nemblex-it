@@ -4,10 +4,8 @@ import com.nemblex.dto.request.TicketRequest;
 import com.nemblex.dto.request.TicketUpdateRequest;
 import com.nemblex.dto.response.AuditLogResponse;
 import com.nemblex.dto.response.TicketResponse;
-import com.nemblex.entity.AppUser;
 import com.nemblex.entity.enums.TicketStatus;
-import com.nemblex.exception.ResourceNotFoundException;
-import com.nemblex.repository.AppUserRepository;
+import com.nemblex.security.AuthenticatedUserResolver;
 import com.nemblex.service.interfaces.TicketAiService;
 import com.nemblex.service.interfaces.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,20 +30,20 @@ public class TicketController {
 
     private final TicketService ticketService;
     private final TicketAiService ticketAiService;
-    private final AppUserRepository userRepository;
+    private final AuthenticatedUserResolver userResolver;
 
     public TicketController(TicketService ticketService, TicketAiService ticketAiService,
-                            AppUserRepository userRepository) {
+                            AuthenticatedUserResolver userResolver) {
         this.ticketService = ticketService;
         this.ticketAiService = ticketAiService;
-        this.userRepository = userRepository;
+        this.userResolver = userResolver;
     }
 
     @Operation(summary = "Crea una nueva incidencia")
     @PostMapping
     public ResponseEntity<TicketResponse> create(@Valid @RequestBody TicketRequest request,
                                                   Authentication authentication) {
-        TicketResponse created = ticketService.createTicket(request, currentUserId(authentication));
+        TicketResponse created = ticketService.createTicket(request, userResolver.resolveId(authentication));
         return ResponseEntity
                 .created(URI.create("/api/tickets/" + created.getId()))
                 .body(created);
@@ -62,7 +60,7 @@ public class TicketController {
     @Operation(summary = "Lista las incidencias creadas por el usuario autenticado")
     @GetMapping("/mine")
     public ResponseEntity<List<TicketResponse>> mine(Authentication authentication) {
-        return ResponseEntity.ok(ticketService.getMyTickets(currentUserId(authentication)));
+        return ResponseEntity.ok(ticketService.getMyTickets(userResolver.resolveId(authentication)));
     }
 
     @Operation(summary = "Obtiene una incidencia por su id")
@@ -81,13 +79,13 @@ public class TicketController {
     @Operation(summary = "Asigna la incidencia al usuario autenticado")
     @PutMapping("/{id}/assign-to-me")
     public ResponseEntity<TicketResponse> assignToMe(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(ticketService.assignToMe(id, currentUserId(authentication)));
+        return ResponseEntity.ok(ticketService.assignToMe(id, userResolver.resolveId(authentication)));
     }
 
     @Operation(summary = "Libera la asignacion de la incidencia (el propio asignado, o un supervisor/admin)")
     @PutMapping("/{id}/unassign")
     public ResponseEntity<TicketResponse> unassign(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(ticketService.unassign(id, currentUserId(authentication)));
+        return ResponseEntity.ok(ticketService.unassign(id, userResolver.resolveId(authentication)));
     }
 
     @Operation(summary = "Clasifica una incidencia con IA (Gemini): propone categoria y prioridad como AuditLog pendiente")
@@ -101,12 +99,5 @@ public class TicketController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         ticketService.deleteTicket(id);
         return ResponseEntity.noContent().build();
-    }
-
-    private Long currentUserId(Authentication authentication) {
-        String email = authentication.getName();
-        AppUser user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
-        return user.getId();
     }
 }

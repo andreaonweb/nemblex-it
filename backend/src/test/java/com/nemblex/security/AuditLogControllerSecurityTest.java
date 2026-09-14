@@ -22,7 +22,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(AuditLogController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, AuthenticatedUserResolver.class})
 class AuditLogControllerSecurityTest {
 
     @Autowired
