@@ -35,6 +35,7 @@ describe('TicketDetailComponent', () => {
   let auditLogServiceStub: { listByTicket: jasmine.Spy; resolveNow: jasmine.Spy };
   let authServiceStub: { currentUser: ReturnType<typeof signal<CurrentUser | null>> };
   let component: TicketDetailComponent;
+  let fixture: ReturnType<typeof TestBed.createComponent<TicketDetailComponent>>;
 
   function createComponent(initialTicket: Ticket = ticket()): void {
     TestBed.resetTestingModule();
@@ -47,7 +48,7 @@ describe('TicketDetailComponent', () => {
         { provide: AuthService, useValue: authServiceStub }
       ]
     });
-    const fixture = TestBed.createComponent(TicketDetailComponent);
+    fixture = TestBed.createComponent(TicketDetailComponent);
     fixture.componentRef.setInput('ticket', initialTicket);
     fixture.detectChanges();
     component = fixture.componentInstance;
@@ -68,6 +69,30 @@ describe('TicketDetailComponent', () => {
 
   it('loads the activity trail for the given ticket on init', () => {
     expect(auditLogServiceStub.listByTicket).toHaveBeenCalledWith(9);
+  });
+
+  it('shows the activity action and result status translated to Spanish', () => {
+    auditLogServiceStub.listByTicket.and.returnValue(of([
+      {
+        id: 1,
+        ticketId: 9,
+        action: 'CLOSE',
+        reason: null,
+        employeeMessage: null,
+        resultStatus: 'APPROVED',
+        approvedByName: 'Ana Torres',
+        createdAt: '2026-09-07T10:00:00'
+      }
+    ]));
+
+    createComponent();
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Cerrar');
+    expect(text).not.toContain('CLOSE');
+    expect(text).toContain('Aprobado');
+    expect(text).not.toContain('APPROVED');
   });
 
   it('emits the updated ticket on successful assignToMe', () => {

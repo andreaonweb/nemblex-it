@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { AuthService } from '../../../auth/services/auth.service';
+import { ROLE_LABELS } from '../../../auth/models/auth-labels';
 
 interface NavItem {
   label: string;
@@ -23,6 +24,7 @@ export class ShellComponent {
   private readonly router = inject(Router);
 
   readonly currentUser = this.authService.currentUser;
+  readonly roleLabels = ROLE_LABELS;
 
   readonly navItems = computed<NavItem[]>(() => {
     const role = this.currentUser()?.role;

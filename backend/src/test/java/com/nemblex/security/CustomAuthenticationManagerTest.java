@@ -42,7 +42,7 @@ class CustomAuthenticationManagerTest {
         // Act & Assert
         assertThatThrownBy(() -> authenticationManager.authenticate(request))
                 .isInstanceOf(BadCredentialsException.class)
-                .hasMessage("Invalid email or password");
+                .hasMessage("Correo electrónico o contraseña incorrectos");
     }
 
     @Test
@@ -58,7 +58,7 @@ class CustomAuthenticationManagerTest {
         // Act & Assert
         assertThatThrownBy(() -> authenticationManager.authenticate(request))
                 .isInstanceOf(BadCredentialsException.class)
-                .hasMessage("Invalid email or password");
+                .hasMessage("Correo electrónico o contraseña incorrectos");
     }
 
     @Test

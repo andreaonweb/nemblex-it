@@ -8,6 +8,7 @@ import { catchError, of } from 'rxjs';
 import { AuditLogService } from '../../audit-logs/services/audit-log.service';
 import { TicketService } from '../../tickets/services/ticket.service';
 import { AuditLog } from '../../audit-logs/models/audit-log.models';
+import { actionLabel } from '../../audit-logs/models/audit-log-labels';
 import { Ticket } from '../../tickets/models/ticket.models';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../tickets/models/ticket-labels';
 
@@ -32,6 +33,7 @@ export class ApprovalsPageComponent implements OnInit {
   protected readonly priorityLabels = PRIORITY_LABELS;
   protected readonly priorityColors = PRIORITY_COLORS;
   protected readonly pageSizeOptions = [10, 20, 50];
+  protected readonly actionLabel = actionLabel;
 
   readonly cards = signal<ApprovalCardState[]>([]);
   readonly loading = signal(false);

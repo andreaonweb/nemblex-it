@@ -13,6 +13,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AuditLogApprovalRequest {
 
-    @NotNull(message = "resultStatus is required")
+    @NotNull(message = "resultStatus es obligatorio")
     private AuditResultStatus resultStatus;
 }

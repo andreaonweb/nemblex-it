@@ -86,8 +86,8 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpServletResponse.SC_UNAUTHORIZED,
-                "Unauthorized",
-                "Invalid email or password",
+                "No autorizado",
+                "Correo electrónico o contraseña incorrectos",
                 request.getRequestURI());
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

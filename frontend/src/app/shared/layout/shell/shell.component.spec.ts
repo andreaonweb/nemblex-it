@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
 
 import { ShellComponent } from './shell.component';
@@ -10,16 +10,18 @@ describe('ShellComponent', () => {
   let authServiceStub: { currentUser: ReturnType<typeof signal<CurrentUser | null>>; logout: jasmine.Spy };
   let router: Router;
   let component: ShellComponent;
+  let fixture: ReturnType<typeof TestBed.createComponent<ShellComponent>>;
 
   beforeEach(() => {
     authServiceStub = { currentUser: signal<CurrentUser | null>(null), logout: jasmine.createSpy('logout') };
     TestBed.configureTestingModule({
       imports: [ShellComponent],
-      providers: [{ provide: AuthService, useValue: authServiceStub }]
+      providers: [provideRouter([]), { provide: AuthService, useValue: authServiceStub }]
     });
     router = TestBed.inject(Router);
     spyOn(router, 'navigateByUrl');
-    component = TestBed.createComponent(ShellComponent).componentInstance;
+    fixture = TestBed.createComponent(ShellComponent);
+    component = fixture.componentInstance;
   });
 
   it('shows only Incidencias for a TECHNICIAN', () => {
@@ -44,6 +46,24 @@ describe('ShellComponent', () => {
     authServiceStub.currentUser.set({ id: 4, email: 'carlos.mendez@nemblex.dev', role: 'EMPLOYEE' });
 
     expect(component.navItems()).toEqual([{ label: 'Mis tickets', path: '/my-tickets' }]);
+  });
+
+  it('shows the role label in Spanish, not the raw enum value', () => {
+    authServiceStub.currentUser.set({ id: 1, email: 'ana.torres@nemblex.dev', role: 'TECHNICIAN' });
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Técnico');
+    expect(text).not.toContain('TECHNICIAN');
+  });
+
+  it('translates every role to its Spanish label', () => {
+    expect(component.roleLabels).toEqual({
+      EMPLOYEE: 'Empleado',
+      TECHNICIAN: 'Técnico',
+      SUPERVISOR: 'Supervisor',
+      ADMIN: 'Administrador'
+    });
   });
 
   it('logs out and navigates to /login', () => {

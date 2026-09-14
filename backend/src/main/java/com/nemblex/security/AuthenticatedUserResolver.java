@@ -18,7 +18,7 @@ public class AuthenticatedUserResolver {
     public AppUser resolve(Authentication authentication) {
         String email = authentication.getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "email", email));
     }
 
     public Long resolveId(Authentication authentication) {

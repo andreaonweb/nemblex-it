@@ -38,8 +38,8 @@ class JWTAuthenticationFilterTest {
         assertThat(response.getStatus()).isEqualTo(401);
         JsonNode body = new ObjectMapper().readTree(response.getContentAsString());
         assertThat(body.get("status").asInt()).isEqualTo(401);
-        assertThat(body.get("error").asText()).isEqualTo("Unauthorized");
-        assertThat(body.get("message").asText()).isEqualTo("Invalid email or password");
+        assertThat(body.get("error").asText()).isEqualTo("No autorizado");
+        assertThat(body.get("message").asText()).isEqualTo("Correo electrónico o contraseña incorrectos");
         assertThat(body.get("path").asText()).isEqualTo("/api/auth/login");
         assertThat(body.has("timestamp")).isTrue();
     }
