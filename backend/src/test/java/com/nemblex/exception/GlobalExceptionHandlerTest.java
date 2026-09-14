@@ -20,7 +20,7 @@ class GlobalExceptionHandlerTest {
         ErrorResponse body = handler.handleGeneric(ex, request).getBody();
 
         // Assert
-        assertThat(body.getMessage()).isEqualTo("An unexpected error occurred");
+        assertThat(body.getMessage()).isEqualTo("Ocurrió un error inesperado");
         assertThat(body.getMessage()).doesNotContain("character varying");
     }
 

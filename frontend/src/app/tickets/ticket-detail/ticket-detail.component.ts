@@ -12,6 +12,7 @@ import { AuditLogService } from '../../audit-logs/services/audit-log.service';
 import { AuthService } from '../../auth/services/auth.service';
 import { Ticket } from '../models/ticket.models';
 import { AuditLog } from '../../audit-logs/models/audit-log.models';
+import { actionLabel, RESULT_STATUS_LABELS } from '../../audit-logs/models/audit-log-labels';
 import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS, STATUS_LABELS } from '../models/ticket-labels';
 
 function extractErrorMessage(err: unknown, fallback: string): string {
@@ -49,6 +50,8 @@ export class TicketDetailComponent {
   protected readonly statusColors = STATUS_COLORS;
   protected readonly priorityLabels = PRIORITY_LABELS;
   protected readonly priorityColors = PRIORITY_COLORS;
+  protected readonly resultStatusLabels = RESULT_STATUS_LABELS;
+  protected readonly actionLabel = actionLabel;
 
   readonly activity = signal<AuditLog[]>([]);
   readonly loadingActivity = signal(false);

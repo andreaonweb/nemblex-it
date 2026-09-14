@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { MatPaginatorIntl } from '@angular/material/paginator';
 import { of, throwError } from 'rxjs';
 
 import { ApprovalsPageComponent } from './approvals-page.component';
@@ -8,6 +9,7 @@ import { TicketService } from '../../tickets/services/ticket.service';
 import { AuditLog } from '../../audit-logs/models/audit-log.models';
 import { PagedResponse } from '../../shared/models/paged-response.model';
 import { Ticket } from '../../tickets/models/ticket.models';
+import { esPaginatorIntl } from '../../shared/i18n/paginator-intl-es';
 
 function log(overrides: Partial<AuditLog> = {}): AuditLog {
   return {
@@ -50,6 +52,7 @@ describe('ApprovalsPageComponent', () => {
   let auditLogServiceStub: { listPending: jasmine.Spy; resolve: jasmine.Spy; undo: jasmine.Spy };
   let ticketServiceStub: { getById: jasmine.Spy };
   let component: ApprovalsPageComponent;
+  let fixture: ReturnType<typeof TestBed.createComponent<ApprovalsPageComponent>>;
 
   function createComponent(): void {
     TestBed.configureTestingModule({
@@ -57,10 +60,11 @@ describe('ApprovalsPageComponent', () => {
       providers: [
         provideNoopAnimations(),
         { provide: AuditLogService, useValue: auditLogServiceStub },
-        { provide: TicketService, useValue: ticketServiceStub }
+        { provide: TicketService, useValue: ticketServiceStub },
+        { provide: MatPaginatorIntl, useFactory: esPaginatorIntl }
       ]
     });
-    const fixture = TestBed.createComponent(ApprovalsPageComponent);
+    fixture = TestBed.createComponent(ApprovalsPageComponent);
     fixture.detectChanges();
     component = fixture.componentInstance;
   }
@@ -86,6 +90,16 @@ describe('ApprovalsPageComponent', () => {
     expect(component.loading()).toBeFalse();
   });
 
+  it('shows the paginator labels in Spanish', () => {
+    auditLogServiceStub.listPending.and.returnValue(of(pagedResponse([log()])));
+
+    createComponent();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Elementos por página');
+    expect(text).not.toContain('Items per page');
+  });
+
   it('exposes the total element count for the paginator', () => {
     auditLogServiceStub.listPending.and.returnValue(of(pagedResponse([log()], { totalElements: 7 })));
 
@@ -103,6 +117,24 @@ describe('ApprovalsPageComponent', () => {
     expect(component.page()).toBe(1);
     expect(component.pageSize()).toBe(10);
     expect(auditLogServiceStub.listPending).toHaveBeenCalledWith(1, 10);
+  });
+
+  it('shows the Spanish label for a known AI action, not the raw enum value', () => {
+    auditLogServiceStub.listPending.and.returnValue(of(pagedResponse([log({ action: 'CLOSE' })])));
+
+    createComponent();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Cerrar');
+    expect(text).not.toContain('CLOSE');
+  });
+
+  it('shows a free-text technician action unchanged', () => {
+    auditLogServiceStub.listPending.and.returnValue(of(pagedResponse([log({ action: 'REINICIO_SERVICIO_VPN' })])));
+
+    createComponent();
+
+    expect(fixture.nativeElement.textContent).toContain('REINICIO_SERVICIO_VPN');
   });
 
   it('keeps the card usable without ticket data when the ticket fetch fails', () => {

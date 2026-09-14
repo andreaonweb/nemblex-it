@@ -1,11 +1,13 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { MatPaginatorIntl } from '@angular/material/paginator';
 import { of, throwError } from 'rxjs';
 
 import { TicketsPageComponent } from './tickets-page.component';
 import { TicketService } from '../services/ticket.service';
 import { PagedResponse } from '../../shared/models/paged-response.model';
 import { Ticket, TicketStats } from '../models/ticket.models';
+import { esPaginatorIntl } from '../../shared/i18n/paginator-intl-es';
 
 function ticket(overrides: Partial<Ticket> = {}): Ticket {
   return {
@@ -42,7 +44,11 @@ describe('TicketsPageComponent', () => {
   function createComponent(): void {
     TestBed.configureTestingModule({
       imports: [TicketsPageComponent],
-      providers: [provideNoopAnimations(), { provide: TicketService, useValue: ticketServiceStub }]
+      providers: [
+        provideNoopAnimations(),
+        { provide: TicketService, useValue: ticketServiceStub },
+        { provide: MatPaginatorIntl, useFactory: esPaginatorIntl }
+      ]
     });
     fixture = TestBed.createComponent(TicketsPageComponent);
     fixture.detectChanges();
@@ -67,6 +73,16 @@ describe('TicketsPageComponent', () => {
     expect(component.totalElements()).toBe(1);
     expect(component.stats()).toEqual(stats());
     expect(component.loading()).toBeFalse();
+  });
+
+  it('shows the paginator labels in Spanish', () => {
+    ticketServiceStub.list.and.returnValue(of(pagedResponse([ticket()])));
+
+    createComponent();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Elementos por página');
+    expect(text).not.toContain('Items per page');
   });
 
   it('sets an error when loading tickets fails', () => {

@@ -20,7 +20,7 @@
     @if (currentUser(); as user) {
       <div class="shell__user">
         <span class="shell__user-email">{{ user.email }}</span>
-        <span class="shell__user-role">{{ user.role }}</span>
+        <span class="shell__user-role">{{ roleLabels[user.role] }}</span>
       </div>
       <button mat-icon-button aria-label="Cerrar sesión" (click)="logout()">
         <mat-icon>logout</mat-icon>

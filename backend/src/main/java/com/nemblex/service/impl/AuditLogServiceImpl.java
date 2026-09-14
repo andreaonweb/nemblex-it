@@ -92,20 +92,20 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     public AuditLogResponse resolveLog(Long id, AuditLogApprovalRequest dto, Long approvedByUserId) {
         AuditLog auditLog = auditLogRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("AuditLog", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Registro de auditoría", "id", id));
 
         if (auditLog.getResultStatus() != AuditResultStatus.PENDING) {
             throw new BadRequestException(
-                    "AuditLog " + id + " is already resolved with status " + auditLog.getResultStatus());
+                    "El registro de auditoría " + id + " ya está resuelto con estado " + auditLog.getResultStatus());
         }
 
         AuditResultStatus target = dto.getResultStatus();
         if (target != AuditResultStatus.APPROVED && target != AuditResultStatus.REJECTED) {
-            throw new BadRequestException("resultStatus must be APPROVED or REJECTED");
+            throw new BadRequestException("resultStatus debe ser APPROVED o REJECTED");
         }
 
         AppUser approver = userRepository.findById(approvedByUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", approvedByUserId));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "id", approvedByUserId));
 
         auditLog.setResultStatus(target);
         auditLog.setApprovedBy(approver);
@@ -149,11 +149,11 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", dto.getTicketId()));
         if (ticket.getStatus().isTerminal()) {
             throw new BadRequestException(
-                    "Ticket " + ticket.getId() + " is already " + ticket.getStatus() + ", nothing to resolve");
+                    "El ticket " + ticket.getId() + " ya está " + ticket.getStatus() + ", no hay nada que resolver");
         }
 
         AppUser technician = userRepository.findById(technicianId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", technicianId));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "id", technicianId));
 
         AuditLog auditLog = auditLogMapper.toEntity(dto);
         auditLog.setTicket(ticket);
@@ -169,10 +169,10 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     public AuditLogResponse undoResolution(Long id) {
         AuditLog auditLog = auditLogRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("AuditLog", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Registro de auditoría", "id", id));
 
         if (auditLog.getResultStatus() == AuditResultStatus.PENDING) {
-            throw new BadRequestException("AuditLog is not resolved, nothing to undo");
+            throw new BadRequestException("El registro de auditoría no está resuelto, no hay nada que deshacer");
         }
 
         auditLog.setResultStatus(AuditResultStatus.PENDING);
@@ -220,7 +220,7 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
         if (ticket.getStatus().isTerminal()) {
             throw new BadRequestException(
-                    "Ticket " + ticket.getId() + " is already " + ticket.getStatus() + ", nothing to propose");
+                    "El ticket " + ticket.getId() + " ya está " + ticket.getStatus() + ", no hay nada que proponer");
         }
         return ticket;
     }

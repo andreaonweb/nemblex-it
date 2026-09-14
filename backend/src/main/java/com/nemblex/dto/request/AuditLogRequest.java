@@ -14,11 +14,11 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AuditLogRequest {
 
-    @NotNull(message = "ticketId is required")
+    @NotNull(message = "ticketId es obligatorio")
     private Long ticketId;
 
-    @NotBlank(message = "action is required")
-    @Size(max = 50, message = "action must be at most 50 characters")
+    @NotBlank(message = "action es obligatoria")
+    @Size(max = 50, message = "action debe tener como máximo 50 caracteres")
     private String action;
 
     private String reason;

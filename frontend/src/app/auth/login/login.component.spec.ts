@@ -64,4 +64,13 @@ describe('LoginComponent', () => {
     expect(component.submitting()).toBeFalse();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
+
+  it('shows the failed-login message fully in Spanish', () => {
+    authServiceStub.login.and.returnValue(throwError(() => new Error('invalid credentials')));
+    component.form.setValue({ email: 'ana.torres@nemblex.dev', password: 'wrong' });
+
+    component.submit();
+
+    expect(component.errorMessage()).toBe('Correo electrónico o contraseña incorrectos.');
+  });
 });

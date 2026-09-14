@@ -28,7 +28,7 @@
             <p class="approval-card__meta">No se pudo cargar el detalle de la incidencia asociada.</p>
           }
 
-          <p class="approval-card__action"><strong>{{ card.log.action }}</strong></p>
+          <p class="approval-card__action"><strong>{{ actionLabel(card.log.action) }}</strong></p>
           @if (card.log.reason) {
             <p class="approval-card__reason">{{ card.log.reason }}</p>
           }

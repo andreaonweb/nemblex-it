@@ -526,7 +526,7 @@ class AuditLogServiceImplTest {
         // Act & Assert
         assertThatThrownBy(() -> auditLogService.undoResolution(1L))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessage("AuditLog is not resolved, nothing to undo");
+                .hasMessage("El registro de auditoría no está resuelto, no hay nada que deshacer");
         verify(auditLogRepository, never()).saveAndFlush(any());
     }
 

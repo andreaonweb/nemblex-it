@@ -54,7 +54,7 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public TicketResponse createTicket(TicketRequest request, Long creatorId) {
         AppUser creator = userRepository.findById(creatorId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", creatorId));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "id", creatorId));
 
         Ticket ticket = ticketMapper.toEntity(request);
         ticket.setStatus(TicketStatus.NEW);
@@ -103,7 +103,7 @@ public class TicketServiceImpl implements TicketService {
         }
         if (request.getAssignedTo() != null) {
             ticket.setAssignedTo(userRepository.findById(request.getAssignedTo())
-                    .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getAssignedTo())));
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario", "id", request.getAssignedTo())));
         }
 
         return ticketMapper.toResponse(ticketRepository.saveAndFlush(ticket));
@@ -119,7 +119,7 @@ public class TicketServiceImpl implements TicketService {
         Ticket ticket = findTicketOrThrow(id);
         if (ticket.getStatus().isTerminal()) {
             throw new BadRequestException(
-                    "Ticket " + id + " is already " + ticket.getStatus() + ", cannot be assigned");
+                    "El ticket " + id + " ya está " + ticket.getStatus() + ", no se puede asignar");
         }
 
         AppUser currentAssignee = ticket.getAssignedTo();
@@ -131,7 +131,7 @@ public class TicketServiceImpl implements TicketService {
         }
 
         AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "id", userId));
         ticket.setAssignedTo(user);
 
         return ticketMapper.toResponse(ticketRepository.saveAndFlush(ticket));
@@ -146,7 +146,7 @@ public class TicketServiceImpl implements TicketService {
         }
 
         AppUser requester = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "id", userId));
 
         boolean isAssignee = assignee.getId().equals(userId);
         boolean isPrivileged = requester.getRole() == Role.SUPERVISOR || requester.getRole() == Role.ADMIN;
@@ -203,6 +203,6 @@ public class TicketServiceImpl implements TicketService {
             return null;
         }
         return categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category", "id", categoryId));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría", "id", categoryId));
     }
 }

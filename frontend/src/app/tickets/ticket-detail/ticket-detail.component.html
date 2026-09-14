@@ -61,14 +61,14 @@
       <ol class="activity__list">
         @for (entry of activity(); track entry.id) {
           <li>
-            <span class="activity__action">{{ entry.action }}</span>
+            <span class="activity__action">{{ actionLabel(entry.action) }}</span>
             @if (entry.reason) {
               <span class="activity__reason">{{ entry.reason }}</span>
             }
             <span class="activity__when">
               {{ entry.createdAt | date: 'dd/MM/yy HH:mm' }}
               @if (entry.approvedByName) { · {{ entry.approvedByName }} }
-              · {{ entry.resultStatus }}
+              · {{ resultStatusLabels[entry.resultStatus] }}
             </span>
           </li>
         }

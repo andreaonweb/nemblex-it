@@ -24,10 +24,10 @@
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <mat-form-field appearance="outline" class="login-card__field">
-          <mat-label>Email</mat-label>
+          <mat-label>Correo electrónico</mat-label>
           <input matInput type="email" formControlName="email" autocomplete="username" />
           @if (form.controls.email.invalid && form.controls.email.touched) {
-            <mat-error>Introduce un email válido.</mat-error>
+            <mat-error>Introduce un correo electrónico válido.</mat-error>
           }
         </mat-form-field>
 

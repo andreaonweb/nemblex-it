@@ -28,11 +28,11 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         try {
             userDetails = userService.loadUserByUsername(authentication.getName());
         } catch (UsernameNotFoundException e) {
-            throw new BadCredentialsException("Invalid email or password");
+            throw new BadCredentialsException("Correo electrónico o contraseña incorrectos");
         }
 
         if (!passwordEncoder.matches(authentication.getCredentials().toString(), userDetails.getPassword())) {
-            throw new BadCredentialsException("Invalid email or password");
+            throw new BadCredentialsException("Correo electrónico o contraseña incorrectos");
         }
 
         return new UsernamePasswordAuthenticationToken(

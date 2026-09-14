@@ -12,10 +12,10 @@ import lombok.NoArgsConstructor;
 @Builder
 public class TicketRequest {
 
-    @NotBlank(message = "Title is required")
+    @NotBlank(message = "El título es obligatorio")
     private String title;
 
-    @NotBlank(message = "Description is required")
+    @NotBlank(message = "La descripción es obligatoria")
     private String description;
 
     private Long categoryId;
