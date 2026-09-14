@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 
@@ -193,4 +193,56 @@ describe('MyTicketsPageComponent', () => {
     expect(component.supportLabel(log({ resultStatus: 'PENDING' }))).toBeNull();
     expect(component.supportLabel(log({ resultStatus: 'REJECTED' }))).toBeNull();
   });
+
+  it('polls again after the wait interval while the ticket still has no audit logs, and stops once logs appear', fakeAsync(() => {
+    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    auditLogServiceStub.listByTicket.and.returnValues(of([]), of([log()]));
+    createComponent();
+
+    component.toggleTicket(1);
+    tick(4000);
+
+    expect(auditLogServiceStub.listByTicket).toHaveBeenCalledTimes(2);
+    expect(component.activity()).toEqual([log()]);
+  }));
+
+  it('stops polling once the ticket panel is collapsed', fakeAsync(() => {
+    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    auditLogServiceStub.listByTicket.and.returnValue(of([]));
+    createComponent();
+    component.toggleTicket(1);
+
+    component.toggleTicket(1);
+    tick(4000);
+
+    expect(auditLogServiceStub.listByTicket).toHaveBeenCalledTimes(1);
+  }));
+
+  it('stops polling the previous ticket when another ticket is expanded', fakeAsync(() => {
+    ticketServiceStub.getMine.and.returnValue(of([ticket(), ticket({ id: 2 })]));
+    auditLogServiceStub.listByTicket.and.returnValue(of([]));
+    createComponent();
+    component.toggleTicket(1);
+
+    component.toggleTicket(2);
+    tick(4000);
+
+    expect(auditLogServiceStub.listByTicket).toHaveBeenCalledWith(1);
+    expect(auditLogServiceStub.listByTicket).toHaveBeenCalledWith(2);
+    expect(auditLogServiceStub.listByTicket).toHaveBeenCalledTimes(3);
+
+    component.ngOnDestroy();
+  }));
+
+  it('cancels pending polling on destroy', fakeAsync(() => {
+    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    auditLogServiceStub.listByTicket.and.returnValue(of([]));
+    createComponent();
+    component.toggleTicket(1);
+
+    component.ngOnDestroy();
+    tick(4000);
+
+    expect(auditLogServiceStub.listByTicket).toHaveBeenCalledTimes(1);
+  }));
 });

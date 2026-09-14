@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,7 +28,11 @@ import { PRIORITY_LABELS, STATUS_COLORS, STATUS_LABELS } from '../models/ticket-
   templateUrl: './my-tickets-page.component.html',
   styleUrl: './my-tickets-page.component.scss'
 })
-export class MyTicketsPageComponent implements OnInit {
+export class MyTicketsPageComponent implements OnInit, OnDestroy {
+  private static readonly ACTIVITY_POLL_INTERVAL_MS = 4000;
+
+  private pollTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
   private readonly ticketService = inject(TicketService);
   private readonly auditLogService = inject(AuditLogService);
   private readonly fb = inject(FormBuilder);
@@ -101,25 +105,57 @@ export class MyTicketsPageComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.cancelPolling();
+  }
+
   toggleTicket(ticketId: number): void {
+    this.cancelPolling();
+
     if (this.expandedTicketId() === ticketId) {
       this.expandedTicketId.set(null);
       return;
     }
 
     this.expandedTicketId.set(ticketId);
-    this.activity.set([]);
-    this.activityLoading.set(true);
+    this.fetchActivity(ticketId);
+  }
+
+  supportLabel(entry: AuditLog): string | null {
+    return entry.resultStatus === 'APPROVED' ? 'Revisado y aprobado por el equipo de soporte' : null;
+  }
+
+  private fetchActivity(ticketId: number, silent = false): void {
+    if (!silent) {
+      this.activity.set([]);
+      this.activityLoading.set(true);
+    }
+
     this.auditLogService.listByTicket(ticketId).subscribe({
       next: (logs) => {
         this.activity.set(logs);
         this.activityLoading.set(false);
+        if (logs.length === 0 && this.expandedTicketId() === ticketId) {
+          this.schedulePoll(ticketId);
+        }
       },
       error: () => this.activityLoading.set(false)
     });
   }
 
-  supportLabel(entry: AuditLog): string | null {
-    return entry.resultStatus === 'APPROVED' ? 'Revisado y aprobado por el equipo de soporte' : null;
+  private schedulePoll(ticketId: number): void {
+    this.pollTimeoutId = setTimeout(() => {
+      this.pollTimeoutId = null;
+      if (this.expandedTicketId() === ticketId) {
+        this.fetchActivity(ticketId, true);
+      }
+    }, MyTicketsPageComponent.ACTIVITY_POLL_INTERVAL_MS);
+  }
+
+  private cancelPolling(): void {
+    if (this.pollTimeoutId !== null) {
+      clearTimeout(this.pollTimeoutId);
+      this.pollTimeoutId = null;
+    }
   }
 }
