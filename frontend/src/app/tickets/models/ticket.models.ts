@@ -23,3 +23,26 @@ export interface TicketRequest {
   description: string;
   categoryId?: number;
 }
+
+export interface TicketStats {
+  abiertas: number;
+  criticas: number;
+  byStatus: Partial<Record<TicketStatus, number>>;
+}
+
+export interface TicketListParams {
+  status?: TicketStatus;
+  priority?: TicketPriority;
+  categoryId?: number;
+  search?: string;
+  page?: number;
+  size?: number;
+}
+
+export interface MyTicketListParams {
+  status?: TicketStatus;
+  priority?: TicketPriority;
+  search?: string;
+  page?: number;
+  size?: number;
+}

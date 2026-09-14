@@ -1,17 +1,22 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { Ticket, TicketRequest } from '../models/ticket.models';
+import { PagedResponse } from '../../shared/models/paged-response.model';
+import { MyTicketListParams, Ticket, TicketListParams, TicketRequest, TicketStats } from '../models/ticket.models';
 
 @Injectable({ providedIn: 'root' })
 export class TicketService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/api/tickets`;
 
-  list(): Observable<Ticket[]> {
-    return this.http.get<Ticket[]>(this.baseUrl);
+  list(params: TicketListParams = {}): Observable<PagedResponse<Ticket>> {
+    return this.http.get<PagedResponse<Ticket>>(this.baseUrl, { params: buildParams(params) });
+  }
+
+  getStats(): Observable<TicketStats> {
+    return this.http.get<TicketStats>(`${this.baseUrl}/stats`);
   }
 
   assignToMe(id: number): Observable<Ticket> {
@@ -30,7 +35,21 @@ export class TicketService {
     return this.http.post<Ticket>(this.baseUrl, request);
   }
 
-  getMine(): Observable<Ticket[]> {
-    return this.http.get<Ticket[]>(`${this.baseUrl}/mine`);
+  getMine(params: MyTicketListParams = {}): Observable<PagedResponse<Ticket>> {
+    return this.http.get<PagedResponse<Ticket>>(`${this.baseUrl}/mine`, { params: buildParams(params) });
   }
+
+  getMyStats(): Observable<TicketStats> {
+    return this.http.get<TicketStats>(`${this.baseUrl}/mine/stats`);
+  }
+}
+
+function buildParams(params: object): HttpParams {
+  let httpParams = new HttpParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      httpParams = httpParams.set(key, String(value));
+    }
+  }
+  return httpParams;
 }

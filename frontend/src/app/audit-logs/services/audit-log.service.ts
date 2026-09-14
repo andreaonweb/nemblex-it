@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
+import { PagedResponse } from '../../shared/models/paged-response.model';
 import { AuditLog, AuditLogApprovalRequest, AuditLogRequest } from '../models/audit-log.models';
 
 @Injectable({ providedIn: 'root' })
@@ -18,8 +19,9 @@ export class AuditLogService {
     return this.http.post<AuditLog>(`${this.baseUrl}/resolve-now`, request);
   }
 
-  listPending(): Observable<AuditLog[]> {
-    return this.http.get<AuditLog[]>(`${this.baseUrl}/pending`);
+  listPending(page = 0, size = 20): Observable<PagedResponse<AuditLog>> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get<PagedResponse<AuditLog>>(`${this.baseUrl}/pending`, { params });
   }
 
   resolve(id: number, request: AuditLogApprovalRequest): Observable<AuditLog> {

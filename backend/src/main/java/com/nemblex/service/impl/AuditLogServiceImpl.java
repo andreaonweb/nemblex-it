@@ -3,6 +3,7 @@ package com.nemblex.service.impl;
 import com.nemblex.dto.request.AuditLogApprovalRequest;
 import com.nemblex.dto.request.AuditLogRequest;
 import com.nemblex.dto.response.AuditLogResponse;
+import com.nemblex.dto.response.PagedResponse;
 import com.nemblex.entity.AppUser;
 import com.nemblex.entity.AuditLog;
 import com.nemblex.entity.Ticket;
@@ -22,6 +23,8 @@ import com.nemblex.repository.TicketRepository;
 import com.nemblex.service.interfaces.AuditLogService;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,10 +84,9 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AuditLogResponse> getAllPending() {
-        return auditLogRepository.findByResultStatus(AuditResultStatus.PENDING).stream()
-                .map(auditLogMapper::toResponse)
-                .toList();
+    public PagedResponse<AuditLogResponse> getAllPending(Pageable pageable) {
+        Page<AuditLog> page = auditLogRepository.findByResultStatus(AuditResultStatus.PENDING, pageable);
+        return PagedResponse.from(page.map(auditLogMapper::toResponse));
     }
 
     @Override

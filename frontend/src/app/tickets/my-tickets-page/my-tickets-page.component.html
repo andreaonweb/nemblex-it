@@ -6,6 +6,31 @@
     </button>
   </div>
 
+  <section class="filters">
+    <mat-form-field appearance="outline" class="filters__field">
+      <mat-label>Estado</mat-label>
+      <mat-select [value]="statusFilter()" (selectionChange)="onStatusFilterChange($event.value)">
+        @for (option of statusOptions; track option) {
+          <mat-option [value]="option">{{ option === 'Todos' ? 'Todos' : statusLabels[option] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filters__field">
+      <mat-label>Prioridad</mat-label>
+      <mat-select [value]="priorityFilter()" (selectionChange)="onPriorityFilterChange($event.value)">
+        @for (option of priorityOptions; track option) {
+          <mat-option [value]="option">{{ option === 'Todas' ? 'Todas' : priorityLabels[option] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filters__field filters__field--search">
+      <mat-label>Buscar</mat-label>
+      <input matInput [value]="search()" (input)="onSearchInput($any($event.target).value)" placeholder="Asunto…" />
+    </mat-form-field>
+  </section>
+
   @if (formOpen()) {
     <mat-card class="new-ticket-card">
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -107,5 +132,13 @@
         </li>
       }
     </ul>
+
+    <mat-paginator
+      [length]="totalElements()"
+      [pageSize]="pageSize()"
+      [pageIndex]="page()"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPage($event)"
+    />
   }
 </div>

@@ -2,6 +2,7 @@ package com.nemblex.security;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -9,7 +10,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.nemblex.controller.TicketController;
+import com.nemblex.dto.response.PagedResponse;
 import com.nemblex.dto.response.TicketResponse;
+import com.nemblex.dto.response.TicketStatsResponse;
 import com.nemblex.entity.AppUser;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.repository.AppUserRepository;
@@ -65,7 +68,8 @@ class EmployeeRoleSecurityTest {
     void employee_canListOwnTickets() throws Exception {
         when(userRepository.findByEmail("carlos.mendez@nemblex.dev"))
                 .thenReturn(Optional.of(AppUser.builder().id(9L).build()));
-        when(ticketService.getMyTickets(9L)).thenReturn(List.of());
+        when(ticketService.getMyTickets(eq(9L), any(), any(), any(), any()))
+                .thenReturn(PagedResponse.<TicketResponse>builder().content(List.of()).build());
 
         mockMvc.perform(get("/api/tickets/mine"))
                 .andExpect(status().isOk());
@@ -106,9 +110,28 @@ class EmployeeRoleSecurityTest {
     @Test
     @WithMockUser(roles = "TECHNICIAN")
     void technician_canStillListFullTicketList() throws Exception {
-        when(ticketService.getAllTickets(null, null)).thenReturn(List.of());
+        when(ticketService.getAllTickets(any(), any(), any(), any(), any()))
+                .thenReturn(PagedResponse.<TicketResponse>builder().content(List.of()).build());
 
         mockMvc.perform(get("/api/tickets"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(username = "carlos.mendez@nemblex.dev", roles = "EMPLOYEE")
+    void employee_canViewOwnStats() throws Exception {
+        when(userRepository.findByEmail("carlos.mendez@nemblex.dev"))
+                .thenReturn(Optional.of(AppUser.builder().id(9L).build()));
+        when(ticketService.getMyStats(9L)).thenReturn(TicketStatsResponse.builder().build());
+
+        mockMvc.perform(get("/api/tickets/mine/stats"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void employee_isForbiddenFromGlobalStats() throws Exception {
+        mockMvc.perform(get("/api/tickets/stats"))
+                .andExpect(status().isForbidden());
     }
 }

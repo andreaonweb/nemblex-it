@@ -2,7 +2,9 @@ package com.nemblex.service.impl;
 
 import com.nemblex.dto.request.TicketRequest;
 import com.nemblex.dto.request.TicketUpdateRequest;
+import com.nemblex.dto.response.PagedResponse;
 import com.nemblex.dto.response.TicketResponse;
+import com.nemblex.dto.response.TicketStatsResponse;
 import com.nemblex.entity.AppUser;
 import com.nemblex.entity.Category;
 import com.nemblex.entity.Ticket;
@@ -16,9 +18,13 @@ import com.nemblex.mapper.TicketMapper;
 import com.nemblex.repository.AppUserRepository;
 import com.nemblex.repository.CategoryRepository;
 import com.nemblex.repository.TicketRepository;
+import com.nemblex.repository.TicketStatusPriorityCount;
 import com.nemblex.service.interfaces.TicketService;
-import java.util.List;
+import java.util.EnumMap;
+import java.util.Map;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,20 +70,17 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TicketResponse> getAllTickets(TicketStatus status, Long categoryId) {
-        List<Ticket> tickets;
-        if (status != null && categoryId != null) {
-            tickets = ticketRepository.findByStatus(status).stream()
-                    .filter(t -> t.getCategory() != null && categoryId.equals(t.getCategory().getId()))
-                    .toList();
-        } else if (status != null) {
-            tickets = ticketRepository.findByStatus(status);
-        } else if (categoryId != null) {
-            tickets = ticketRepository.findByCategoryId(categoryId);
-        } else {
-            tickets = ticketRepository.findAll();
-        }
-        return tickets.stream().map(ticketMapper::toResponse).toList();
+    public PagedResponse<TicketResponse> getAllTickets(TicketStatus status, TicketPriority priority,
+                                                        Long categoryId, String search, Pageable pageable) {
+        Page<Ticket> page = ticketRepository.search(status, priority, categoryId, null,
+                normalizeSearch(search), pageable);
+        return PagedResponse.from(page.map(ticketMapper::toResponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TicketStatsResponse getStats() {
+        return buildStats(null);
     }
 
     @Override
@@ -157,10 +160,37 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TicketResponse> getMyTickets(Long userId) {
-        return ticketRepository.findByCreatedById(userId).stream()
-                .map(ticketMapper::toResponse)
-                .toList();
+    public PagedResponse<TicketResponse> getMyTickets(Long userId, TicketStatus status, TicketPriority priority,
+                                                       String search, Pageable pageable) {
+        Page<Ticket> page = ticketRepository.search(status, priority, null, userId,
+                normalizeSearch(search), pageable);
+        return PagedResponse.from(page.map(ticketMapper::toResponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TicketStatsResponse getMyStats(Long userId) {
+        return buildStats(userId);
+    }
+
+    private TicketStatsResponse buildStats(Long createdById) {
+        Map<TicketStatus, Long> byStatus = new EnumMap<>(TicketStatus.class);
+        long abiertas = 0;
+        long criticas = 0;
+        for (TicketStatusPriorityCount count : ticketRepository.countByStatusAndPriority(createdById)) {
+            byStatus.merge(count.getStatus(), count.getCount(), Long::sum);
+            if (!count.getStatus().isTerminal()) {
+                abiertas += count.getCount();
+                if (count.getPriority() == TicketPriority.HIGH) {
+                    criticas += count.getCount();
+                }
+            }
+        }
+        return TicketStatsResponse.builder().abiertas(abiertas).criticas(criticas).byStatus(byStatus).build();
+    }
+
+    private String normalizeSearch(String search) {
+        return (search == null || search.isBlank()) ? null : "%" + search.trim().toLowerCase() + "%";
     }
 
     private Ticket findTicketOrThrow(Long id) {

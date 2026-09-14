@@ -3,12 +3,37 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { TicketService } from './ticket.service';
-import { Ticket } from '../models/ticket.models';
+import { PagedResponse } from '../../shared/models/paged-response.model';
+import { Ticket, TicketStats } from '../models/ticket.models';
 import { environment } from '../../../environments/environment';
 
 describe('TicketService', () => {
   let service: TicketService;
   let httpMock: HttpTestingController;
+
+  const mockTicket: Ticket = {
+    id: 1,
+    title: 'VPN caída',
+    description: 'desc',
+    status: 'NEW',
+    priority: 'HIGH',
+    categoryId: null,
+    categoryName: null,
+    createdById: 1,
+    createdByName: 'Ana Torres',
+    assignedToId: null,
+    assignedToName: null,
+    createdAt: '2026-09-07T10:00:00',
+    updatedAt: '2026-09-07T10:00:00'
+  };
+
+  const mockPagedResponse: PagedResponse<Ticket> = {
+    content: [mockTicket],
+    page: 0,
+    size: 20,
+    totalElements: 1,
+    totalPages: 1
+  };
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -20,52 +45,47 @@ describe('TicketService', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('fetches all tickets from GET /api/tickets', () => {
-    const mockTickets: Ticket[] = [
-      {
-        id: 1,
-        title: 'VPN caída',
-        description: 'desc',
-        status: 'NEW',
-        priority: 'HIGH',
-        categoryId: null,
-        categoryName: null,
-        createdById: 1,
-        createdByName: 'Ana Torres',
-        assignedToId: null,
-        assignedToName: null,
-        createdAt: '2026-09-07T10:00:00',
-        updatedAt: '2026-09-07T10:00:00'
-      }
-    ];
+  it('fetches a page of tickets from GET /api/tickets with no filters', () => {
+    let result: PagedResponse<Ticket> | undefined;
+    service.list().subscribe((page) => (result = page));
 
-    let result: Ticket[] | undefined;
-    service.list().subscribe((tickets) => (result = tickets));
-
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/tickets`);
+    const req = httpMock.expectOne((r) => r.url === `${environment.apiUrl}/api/tickets`);
     expect(req.request.method).toBe('GET');
-    req.flush(mockTickets);
+    expect(req.request.params.keys().length).toBe(0);
+    req.flush(mockPagedResponse);
 
-    expect(result).toEqual(mockTickets);
+    expect(result).toEqual(mockPagedResponse);
+  });
+
+  it('sends status, priority, search and page params on GET /api/tickets', () => {
+    service
+      .list({ status: 'NEW', priority: 'HIGH', categoryId: 3, search: 'vpn', page: 2, size: 10 })
+      .subscribe();
+
+    const req = httpMock.expectOne((r) => r.url === `${environment.apiUrl}/api/tickets`);
+    expect(req.request.params.get('status')).toBe('NEW');
+    expect(req.request.params.get('priority')).toBe('HIGH');
+    expect(req.request.params.get('categoryId')).toBe('3');
+    expect(req.request.params.get('search')).toBe('vpn');
+    expect(req.request.params.get('page')).toBe('2');
+    expect(req.request.params.get('size')).toBe('10');
+    req.flush(mockPagedResponse);
+  });
+
+  it('fetches global stats from GET /api/tickets/stats', () => {
+    const mockStats: TicketStats = { abiertas: 4, criticas: 1, byStatus: { NEW: 2, IN_PROGRESS: 2 } };
+
+    let result: TicketStats | undefined;
+    service.getStats().subscribe((stats) => (result = stats));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tickets/stats`);
+    expect(req.request.method).toBe('GET');
+    req.flush(mockStats);
+
+    expect(result).toEqual(mockStats);
   });
 
   it('assigns a ticket to the current user via PUT /api/tickets/{id}/assign-to-me', () => {
-    const mockTicket: Ticket = {
-      id: 1,
-      title: 'VPN caída',
-      description: 'desc',
-      status: 'NEW',
-      priority: 'HIGH',
-      categoryId: null,
-      categoryName: null,
-      createdById: 1,
-      createdByName: 'Ana Torres',
-      assignedToId: 3,
-      assignedToName: 'Ana Torres',
-      createdAt: '2026-09-07T10:00:00',
-      updatedAt: '2026-09-07T10:05:00'
-    };
-
     let result: Ticket | undefined;
     service.assignToMe(1).subscribe((ticket) => (result = ticket));
 
@@ -77,22 +97,6 @@ describe('TicketService', () => {
   });
 
   it('fetches a single ticket from GET /api/tickets/{id}', () => {
-    const mockTicket: Ticket = {
-      id: 1,
-      title: 'VPN caída',
-      description: 'desc',
-      status: 'PENDING_APPROVAL',
-      priority: 'HIGH',
-      categoryId: 2,
-      categoryName: 'Redes',
-      createdById: 1,
-      createdByName: 'Ana Torres',
-      assignedToId: 3,
-      assignedToName: 'Carlos Ruiz',
-      createdAt: '2026-09-07T10:00:00',
-      updatedAt: '2026-09-07T10:05:00'
-    };
-
     let result: Ticket | undefined;
     service.getById(1).subscribe((ticket) => (result = ticket));
 
@@ -104,22 +108,6 @@ describe('TicketService', () => {
   });
 
   it('releases the assignment via PUT /api/tickets/{id}/unassign', () => {
-    const mockTicket: Ticket = {
-      id: 1,
-      title: 'VPN caída',
-      description: 'desc',
-      status: 'NEW',
-      priority: 'HIGH',
-      categoryId: null,
-      categoryName: null,
-      createdById: 1,
-      createdByName: 'Ana Torres',
-      assignedToId: null,
-      assignedToName: null,
-      createdAt: '2026-09-07T10:00:00',
-      updatedAt: '2026-09-07T10:05:00'
-    };
-
     let result: Ticket | undefined;
     service.unassign(1).subscribe((ticket) => (result = ticket));
 
@@ -131,22 +119,6 @@ describe('TicketService', () => {
   });
 
   it('creates a ticket via POST /api/tickets', () => {
-    const mockTicket: Ticket = {
-      id: 20,
-      title: 'No puedo acceder al VPN',
-      description: 'Pide credenciales invalidas',
-      status: 'NEW',
-      priority: 'MEDIUM',
-      categoryId: null,
-      categoryName: null,
-      createdById: 5,
-      createdByName: 'Carlos Mendez',
-      assignedToId: null,
-      assignedToName: null,
-      createdAt: '2026-09-08T10:00:00',
-      updatedAt: '2026-09-08T10:00:00'
-    };
-
     let result: Ticket | undefined;
     service.create({ title: 'No puedo acceder al VPN', description: 'Pide credenciales invalidas' }).subscribe((t) => (result = t));
 
@@ -158,32 +130,39 @@ describe('TicketService', () => {
     expect(result).toEqual(mockTicket);
   });
 
-  it('fetches the tickets created by the current user from GET /api/tickets/mine', () => {
-    const mockTickets: Ticket[] = [
-      {
-        id: 20,
-        title: 'No puedo acceder al VPN',
-        description: 'desc',
-        status: 'NEW',
-        priority: 'MEDIUM',
-        categoryId: null,
-        categoryName: null,
-        createdById: 5,
-        createdByName: 'Carlos Mendez',
-        assignedToId: null,
-        assignedToName: null,
-        createdAt: '2026-09-08T10:00:00',
-        updatedAt: '2026-09-08T10:00:00'
-      }
-    ];
+  it('fetches a page of the tickets created by the current user from GET /api/tickets/mine', () => {
+    let result: PagedResponse<Ticket> | undefined;
+    service.getMine().subscribe((page) => (result = page));
 
-    let result: Ticket[] | undefined;
-    service.getMine().subscribe((tickets) => (result = tickets));
-
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/tickets/mine`);
+    const req = httpMock.expectOne((r) => r.url === `${environment.apiUrl}/api/tickets/mine`);
     expect(req.request.method).toBe('GET');
-    req.flush(mockTickets);
+    req.flush(mockPagedResponse);
 
-    expect(result).toEqual(mockTickets);
+    expect(result).toEqual(mockPagedResponse);
+  });
+
+  it('sends status, priority, search and page params on GET /api/tickets/mine', () => {
+    service.getMine({ status: 'RESOLVED', priority: 'LOW', search: 'impresora', page: 1, size: 5 }).subscribe();
+
+    const req = httpMock.expectOne((r) => r.url === `${environment.apiUrl}/api/tickets/mine`);
+    expect(req.request.params.get('status')).toBe('RESOLVED');
+    expect(req.request.params.get('priority')).toBe('LOW');
+    expect(req.request.params.get('search')).toBe('impresora');
+    expect(req.request.params.get('page')).toBe('1');
+    expect(req.request.params.get('size')).toBe('5');
+    req.flush(mockPagedResponse);
+  });
+
+  it('fetches the current user stats from GET /api/tickets/mine/stats', () => {
+    const mockStats: TicketStats = { abiertas: 2, criticas: 0, byStatus: { NEW: 2 } };
+
+    let result: TicketStats | undefined;
+    service.getMyStats().subscribe((stats) => (result = stats));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tickets/mine/stats`);
+    expect(req.request.method).toBe('GET');
+    req.flush(mockStats);
+
+    expect(result).toEqual(mockStats);
   });
 });

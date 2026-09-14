@@ -5,6 +5,7 @@ import { of, throwError } from 'rxjs';
 import { MyTicketsPageComponent } from './my-tickets-page.component';
 import { TicketService } from '../services/ticket.service';
 import { AuditLogService } from '../../audit-logs/services/audit-log.service';
+import { PagedResponse } from '../../shared/models/paged-response.model';
 import { Ticket } from '../models/ticket.models';
 import { AuditLog } from '../../audit-logs/models/audit-log.models';
 
@@ -25,6 +26,10 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     updatedAt: '2026-09-08T10:00:00',
     ...overrides
   };
+}
+
+function pagedResponse(content: Ticket[], overrides: Partial<PagedResponse<Ticket>> = {}): PagedResponse<Ticket> {
+  return { content, page: 0, size: 20, totalElements: content.length, totalPages: 1, ...overrides };
 }
 
 function log(overrides: Partial<AuditLog> = {}): AuditLog {
@@ -63,7 +68,7 @@ describe('MyTicketsPageComponent', () => {
 
   beforeEach(() => {
     ticketServiceStub = {
-      getMine: jasmine.createSpy('getMine').and.returnValue(of([] as Ticket[])),
+      getMine: jasmine.createSpy('getMine').and.returnValue(of(pagedResponse([]))),
       create: jasmine.createSpy('create')
     };
     auditLogServiceStub = {
@@ -72,12 +77,13 @@ describe('MyTicketsPageComponent', () => {
   });
 
   it('loads the tickets created by the current user on init', () => {
-    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    ticketServiceStub.getMine.and.returnValue(of(pagedResponse([ticket()])));
 
     createComponent();
 
     expect(ticketServiceStub.getMine).toHaveBeenCalled();
     expect(component.tickets()).toEqual([ticket()]);
+    expect(component.totalElements()).toBe(1);
     expect(component.loading()).toBeFalse();
   });
 
@@ -88,6 +94,55 @@ describe('MyTicketsPageComponent', () => {
 
     expect(component.error()).not.toBeNull();
     expect(component.loading()).toBeFalse();
+  });
+
+  it('reloads from page 0 when the status filter changes', () => {
+    createComponent();
+    ticketServiceStub.getMine.calls.reset();
+
+    component.onStatusFilterChange('RESOLVED');
+
+    expect(component.statusFilter()).toBe('RESOLVED');
+    expect(component.page()).toBe(0);
+    expect(ticketServiceStub.getMine).toHaveBeenCalledWith(
+      jasmine.objectContaining({ status: 'RESOLVED', page: 0 })
+    );
+  });
+
+  it('reloads from page 0 when the priority filter changes', () => {
+    createComponent();
+    ticketServiceStub.getMine.calls.reset();
+
+    component.onPriorityFilterChange('HIGH');
+
+    expect(component.priorityFilter()).toBe('HIGH');
+    expect(ticketServiceStub.getMine).toHaveBeenCalledWith(
+      jasmine.objectContaining({ priority: 'HIGH', page: 0 })
+    );
+  });
+
+  it('debounces search input and reloads from page 0 once settled', fakeAsync(() => {
+    createComponent();
+    ticketServiceStub.getMine.calls.reset();
+
+    component.onSearchInput('vpn');
+    tick(299);
+    expect(ticketServiceStub.getMine).not.toHaveBeenCalled();
+
+    tick(1);
+    expect(component.search()).toBe('vpn');
+    expect(ticketServiceStub.getMine).toHaveBeenCalledWith(jasmine.objectContaining({ search: 'vpn', page: 0 }));
+  }));
+
+  it('requests the selected page and size when the paginator changes', () => {
+    createComponent();
+    ticketServiceStub.getMine.calls.reset();
+
+    component.onPage({ pageIndex: 2, pageSize: 10, length: 30 } as any);
+
+    expect(component.page()).toBe(2);
+    expect(component.pageSize()).toBe(10);
+    expect(ticketServiceStub.getMine).toHaveBeenCalledWith(jasmine.objectContaining({ page: 2, size: 10 }));
   });
 
   it('toggles the new ticket form open and closed', () => {
@@ -137,7 +192,7 @@ describe('MyTicketsPageComponent', () => {
   });
 
   it('expands a ticket and fetches its audit trail', () => {
-    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    ticketServiceStub.getMine.and.returnValue(of(pagedResponse([ticket()])));
     auditLogServiceStub.listByTicket.and.returnValue(of([log()]));
     createComponent();
 
@@ -150,7 +205,7 @@ describe('MyTicketsPageComponent', () => {
   });
 
   it('collapses an expanded ticket when clicked again', () => {
-    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    ticketServiceStub.getMine.and.returnValue(of(pagedResponse([ticket()])));
     createComponent();
     component.toggleTicket(1);
 
@@ -160,7 +215,7 @@ describe('MyTicketsPageComponent', () => {
   });
 
   it('switches to another ticket and refetches its audit trail', () => {
-    ticketServiceStub.getMine.and.returnValue(of([ticket(), ticket({ id: 2 })]));
+    ticketServiceStub.getMine.and.returnValue(of(pagedResponse([ticket(), ticket({ id: 2 })])));
     auditLogServiceStub.listByTicket.and.returnValue(of([log()]));
     createComponent();
     component.toggleTicket(1);
@@ -172,7 +227,7 @@ describe('MyTicketsPageComponent', () => {
   });
 
   it('leaves activity empty and stops loading when the audit trail fetch fails', () => {
-    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    ticketServiceStub.getMine.and.returnValue(of(pagedResponse([ticket()])));
     auditLogServiceStub.listByTicket.and.returnValue(throwError(() => new Error('boom')));
     createComponent();
 
@@ -197,7 +252,7 @@ describe('MyTicketsPageComponent', () => {
   });
 
   it('polls again after the wait interval while the ticket still has no audit logs, and stops once logs appear', fakeAsync(() => {
-    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    ticketServiceStub.getMine.and.returnValue(of(pagedResponse([ticket()])));
     auditLogServiceStub.listByTicket.and.returnValues(of([]), of([log()]));
     createComponent();
 
@@ -209,7 +264,7 @@ describe('MyTicketsPageComponent', () => {
   }));
 
   it('stops polling once the ticket panel is collapsed', fakeAsync(() => {
-    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    ticketServiceStub.getMine.and.returnValue(of(pagedResponse([ticket()])));
     auditLogServiceStub.listByTicket.and.returnValue(of([]));
     createComponent();
     component.toggleTicket(1);
@@ -221,7 +276,7 @@ describe('MyTicketsPageComponent', () => {
   }));
 
   it('stops polling the previous ticket when another ticket is expanded', fakeAsync(() => {
-    ticketServiceStub.getMine.and.returnValue(of([ticket(), ticket({ id: 2 })]));
+    ticketServiceStub.getMine.and.returnValue(of(pagedResponse([ticket(), ticket({ id: 2 })])));
     auditLogServiceStub.listByTicket.and.returnValue(of([]));
     createComponent();
     component.toggleTicket(1);
@@ -237,7 +292,7 @@ describe('MyTicketsPageComponent', () => {
   }));
 
   it('cancels pending polling on destroy', fakeAsync(() => {
-    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    ticketServiceStub.getMine.and.returnValue(of(pagedResponse([ticket()])));
     auditLogServiceStub.listByTicket.and.returnValue(of([]));
     createComponent();
     component.toggleTicket(1);
@@ -249,7 +304,7 @@ describe('MyTicketsPageComponent', () => {
   }));
 
   it('shows the employee-facing message and never the internal reason', () => {
-    ticketServiceStub.getMine.and.returnValue(of([ticket()]));
+    ticketServiceStub.getMine.and.returnValue(of(pagedResponse([ticket()])));
     auditLogServiceStub.listByTicket.and.returnValue(of([log({
       reason: 'Duplicado del ticket #8, cierre segun procedimiento R-dup-01',
       employeeMessage: 'Ya identificamos este problema, no necesitás hacer nada más.'

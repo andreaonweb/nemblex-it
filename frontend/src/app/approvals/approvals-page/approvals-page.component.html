@@ -56,5 +56,13 @@
         </mat-card>
       }
     </div>
+
+    <mat-paginator
+      [length]="totalElements()"
+      [pageSize]="pageSize()"
+      [pageIndex]="page()"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPage($event)"
+    />
   }
 </div>

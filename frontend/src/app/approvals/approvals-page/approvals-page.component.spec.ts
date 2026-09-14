@@ -6,6 +6,7 @@ import { ApprovalsPageComponent } from './approvals-page.component';
 import { AuditLogService } from '../../audit-logs/services/audit-log.service';
 import { TicketService } from '../../tickets/services/ticket.service';
 import { AuditLog } from '../../audit-logs/models/audit-log.models';
+import { PagedResponse } from '../../shared/models/paged-response.model';
 import { Ticket } from '../../tickets/models/ticket.models';
 
 function log(overrides: Partial<AuditLog> = {}): AuditLog {
@@ -20,6 +21,10 @@ function log(overrides: Partial<AuditLog> = {}): AuditLog {
     createdAt: '2026-09-07T10:00:00',
     ...overrides
   };
+}
+
+function pagedResponse(content: AuditLog[], overrides: Partial<PagedResponse<AuditLog>> = {}): PagedResponse<AuditLog> {
+  return { content, page: 0, size: 20, totalElements: content.length, totalPages: 1, ...overrides };
 }
 
 function ticket(overrides: Partial<Ticket> = {}): Ticket {
@@ -62,7 +67,7 @@ describe('ApprovalsPageComponent', () => {
 
   beforeEach(() => {
     auditLogServiceStub = {
-      listPending: jasmine.createSpy('listPending').and.returnValue(of([] as AuditLog[])),
+      listPending: jasmine.createSpy('listPending').and.returnValue(of(pagedResponse([]))),
       resolve: jasmine.createSpy('resolve'),
       undo: jasmine.createSpy('undo')
     };
@@ -70,19 +75,38 @@ describe('ApprovalsPageComponent', () => {
   });
 
   it('loads pending logs and enriches each card with its ticket', () => {
-    auditLogServiceStub.listPending.and.returnValue(of([log()]));
+    auditLogServiceStub.listPending.and.returnValue(of(pagedResponse([log()])));
 
     createComponent();
 
-    expect(auditLogServiceStub.listPending).toHaveBeenCalled();
+    expect(auditLogServiceStub.listPending).toHaveBeenCalledWith(0, 20);
     expect(ticketServiceStub.getById).toHaveBeenCalledWith(9);
     expect(component.cards().length).toBe(1);
     expect(component.cards()[0].ticket).toEqual(ticket());
     expect(component.loading()).toBeFalse();
   });
 
+  it('exposes the total element count for the paginator', () => {
+    auditLogServiceStub.listPending.and.returnValue(of(pagedResponse([log()], { totalElements: 7 })));
+
+    createComponent();
+
+    expect(component.totalElements()).toBe(7);
+  });
+
+  it('requests the selected page and size when the paginator changes', () => {
+    createComponent();
+    auditLogServiceStub.listPending.calls.reset();
+
+    component.onPage({ pageIndex: 1, pageSize: 10, length: 30 } as any);
+
+    expect(component.page()).toBe(1);
+    expect(component.pageSize()).toBe(10);
+    expect(auditLogServiceStub.listPending).toHaveBeenCalledWith(1, 10);
+  });
+
   it('keeps the card usable without ticket data when the ticket fetch fails', () => {
-    auditLogServiceStub.listPending.and.returnValue(of([log()]));
+    auditLogServiceStub.listPending.and.returnValue(of(pagedResponse([log()])));
     ticketServiceStub.getById.and.returnValue(throwError(() => new Error('boom')));
 
     createComponent();
@@ -101,7 +125,7 @@ describe('ApprovalsPageComponent', () => {
   });
 
   it('approves a card, keeps it visible marked as resolved, and offers undo', () => {
-    auditLogServiceStub.listPending.and.returnValue(of([log()]));
+    auditLogServiceStub.listPending.and.returnValue(of(pagedResponse([log()])));
     createComponent();
     const resolvedLog = log({ resultStatus: 'APPROVED', approvedByName: 'Jefe IT' });
     auditLogServiceStub.resolve.and.returnValue(of(resolvedLog));
@@ -115,7 +139,7 @@ describe('ApprovalsPageComponent', () => {
   });
 
   it('rejects a card and keeps it visible marked as resolved', () => {
-    auditLogServiceStub.listPending.and.returnValue(of([log()]));
+    auditLogServiceStub.listPending.and.returnValue(of(pagedResponse([log()])));
     createComponent();
     const resolvedLog = log({ resultStatus: 'REJECTED', approvedByName: 'Jefe IT' });
     auditLogServiceStub.resolve.and.returnValue(of(resolvedLog));
@@ -127,7 +151,7 @@ describe('ApprovalsPageComponent', () => {
   });
 
   it('sets a card-level error and stops when resolve fails', () => {
-    auditLogServiceStub.listPending.and.returnValue(of([log()]));
+    auditLogServiceStub.listPending.and.returnValue(of(pagedResponse([log()])));
     createComponent();
     auditLogServiceStub.resolve.and.returnValue(throwError(() => new Error('boom')));
 
@@ -139,7 +163,9 @@ describe('ApprovalsPageComponent', () => {
   });
 
   it('undoes a resolved card back to pending', () => {
-    auditLogServiceStub.listPending.and.returnValue(of([log({ resultStatus: 'APPROVED', approvedByName: 'Jefe IT' })]));
+    auditLogServiceStub.listPending.and.returnValue(
+      of(pagedResponse([log({ resultStatus: 'APPROVED', approvedByName: 'Jefe IT' })]))
+    );
     createComponent();
     const undoneLog = log({ resultStatus: 'PENDING', approvedByName: null });
     auditLogServiceStub.undo.and.returnValue(of(undoneLog));

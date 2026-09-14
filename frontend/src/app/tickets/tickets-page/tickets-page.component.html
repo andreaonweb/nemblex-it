@@ -3,18 +3,18 @@
     <section class="kpis">
       <mat-card class="kpi-card">
         <span class="kpi-card__label">Abiertas</span>
-        <strong class="kpi-card__value">{{ kpis().abiertas }}</strong>
+        <strong class="kpi-card__value">{{ stats().abiertas }}</strong>
       </mat-card>
       <mat-card class="kpi-card">
         <span class="kpi-card__label">Críticas</span>
-        <strong class="kpi-card__value kpi-card__value--critical">{{ kpis().criticas }}</strong>
+        <strong class="kpi-card__value kpi-card__value--critical">{{ stats().criticas }}</strong>
       </mat-card>
     </section>
 
     <section class="filters">
       <mat-form-field appearance="outline" class="filters__field">
         <mat-label>Estado</mat-label>
-        <mat-select [value]="statusFilter()" (selectionChange)="statusFilter.set($event.value)">
+        <mat-select [value]="statusFilter()" (selectionChange)="onStatusFilterChange($event.value)">
           @for (option of statusOptions; track option) {
             <mat-option [value]="option">
               {{ option === 'Todos' ? 'Todos' : statusLabels[option] }} ({{ statusCount(option) }})
@@ -25,7 +25,7 @@
 
       <mat-form-field appearance="outline" class="filters__field">
         <mat-label>Prioridad</mat-label>
-        <mat-select [value]="priorityFilter()" (selectionChange)="priorityFilter.set($event.value)">
+        <mat-select [value]="priorityFilter()" (selectionChange)="onPriorityFilterChange($event.value)">
           @for (option of priorityOptions; track option) {
             <mat-option [value]="option">{{ option === 'Todas' ? 'Todas' : priorityLabels[option] }}</mat-option>
           }
@@ -34,7 +34,7 @@
 
       <mat-form-field appearance="outline" class="filters__field filters__field--search">
         <mat-label>Buscar</mat-label>
-        <input matInput [value]="search()" (input)="search.set($any($event.target).value)" placeholder="Asunto o solicitante…" />
+        <input matInput [value]="search()" (input)="onSearchInput($any($event.target).value)" placeholder="Asunto o solicitante…" />
       </mat-form-field>
     </section>
 
@@ -44,8 +44,8 @@
       <p class="state-message state-message--error">{{ error() }}</p>
     } @else {
       <p class="summary">
-        {{ filteredTickets().length }} {{ filteredTickets().length === 1 ? 'incidencia visible' : 'incidencias visibles' }}
-        de {{ tickets().length }}
+        {{ tickets().length }} {{ tickets().length === 1 ? 'incidencia visible' : 'incidencias visibles' }}
+        de {{ totalElements() }}
       </p>
 
       <table class="tickets-table">
@@ -59,7 +59,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (t of filteredTickets(); track t.id) {
+          @for (t of tickets(); track t.id) {
             <tr [class.is-selected]="t.id === selectedId()" (click)="selectTicket(t.id)">
               <td>#{{ t.id }}</td>
               <td>
@@ -83,9 +83,17 @@
         </tbody>
       </table>
 
-      @if (filteredTickets().length === 0) {
+      @if (tickets().length === 0) {
         <p class="state-message">Ningún ticket coincide con los filtros aplicados.</p>
       }
+
+      <mat-paginator
+        [length]="totalElements()"
+        [pageSize]="pageSize()"
+        [pageIndex]="page()"
+        [pageSizeOptions]="pageSizeOptions"
+        (page)="onPage($event)"
+      />
     }
   </main>
 

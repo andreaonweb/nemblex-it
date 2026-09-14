@@ -3,7 +3,10 @@ package com.nemblex.controller;
 import com.nemblex.dto.request.TicketRequest;
 import com.nemblex.dto.request.TicketUpdateRequest;
 import com.nemblex.dto.response.AuditLogResponse;
+import com.nemblex.dto.response.PagedResponse;
 import com.nemblex.dto.response.TicketResponse;
+import com.nemblex.dto.response.TicketStatsResponse;
+import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.security.AuthenticatedUserResolver;
 import com.nemblex.service.interfaces.TicketAiService;
@@ -11,7 +14,9 @@ import com.nemblex.service.interfaces.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.net.URI;
-import java.util.List;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -49,18 +54,39 @@ public class TicketController {
                 .body(created);
     }
 
-    @Operation(summary = "Lista incidencias, con filtro opcional por estado y categoria")
+    @Operation(summary = "Lista incidencias paginadas, con filtro opcional por estado, prioridad, categoria y busqueda")
     @GetMapping
-    public ResponseEntity<List<TicketResponse>> list(
+    public ResponseEntity<PagedResponse<TicketResponse>> list(
             @RequestParam(required = false) TicketStatus status,
-            @RequestParam(required = false) Long categoryId) {
-        return ResponseEntity.ok(ticketService.getAllTickets(status, categoryId));
+            @RequestParam(required = false) TicketPriority priority,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(ticketService.getAllTickets(status, priority, categoryId, search, pageable));
     }
 
-    @Operation(summary = "Lista las incidencias creadas por el usuario autenticado")
+    @Operation(summary = "KPIs y conteos por estado de todas las incidencias (TECHNICIAN/SUPERVISOR/ADMIN)")
+    @GetMapping("/stats")
+    public ResponseEntity<TicketStatsResponse> stats() {
+        return ResponseEntity.ok(ticketService.getStats());
+    }
+
+    @Operation(summary = "Lista paginada de las incidencias creadas por el usuario autenticado")
     @GetMapping("/mine")
-    public ResponseEntity<List<TicketResponse>> mine(Authentication authentication) {
-        return ResponseEntity.ok(ticketService.getMyTickets(userResolver.resolveId(authentication)));
+    public ResponseEntity<PagedResponse<TicketResponse>> mine(
+            @RequestParam(required = false) TicketStatus status,
+            @RequestParam(required = false) TicketPriority priority,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication authentication) {
+        return ResponseEntity.ok(ticketService.getMyTickets(
+                userResolver.resolveId(authentication), status, priority, search, pageable));
+    }
+
+    @Operation(summary = "KPIs y conteos por estado de las incidencias del usuario autenticado")
+    @GetMapping("/mine/stats")
+    public ResponseEntity<TicketStatsResponse> myStats(Authentication authentication) {
+        return ResponseEntity.ok(ticketService.getMyStats(userResolver.resolveId(authentication)));
     }
 
     @Operation(summary = "Obtiene una incidencia por su id")
