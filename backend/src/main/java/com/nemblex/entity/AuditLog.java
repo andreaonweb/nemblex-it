@@ -1,6 +1,7 @@
 package com.nemblex.entity;
 
 import com.nemblex.entity.enums.AuditResultStatus;
+import com.nemblex.entity.enums.TicketPriority;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -42,6 +43,13 @@ public class AuditLog {
 
     @Column(columnDefinition = "text")
     private String reason;
+
+    @Column(name = "proposed_category", length = 100)
+    private String proposedCategory;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "proposed_priority", length = 10)
+    private TicketPriority proposedPriority;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "result_status", nullable = false, length = 20)

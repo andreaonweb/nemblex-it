@@ -80,7 +80,7 @@ class TicketAiServiceImplTest {
         when(geminiClient.embedText(anyString())).thenReturn(Optional.empty());
         when(geminiClient.classifyTicket("VPN no conecta", "Los usuarios no pueden conectarse a la VPN corporativa", List.of()))
                 .thenReturn(Optional.of(classification));
-        when(auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Palabras clave de VPN detectadas"))
+        when(auditLogService.createAiClassificationProposal(1L, "Palabras clave de VPN detectadas", "Redes", TicketPriority.HIGH))
                 .thenReturn(expectedResponse);
 
         // Act
@@ -88,7 +88,7 @@ class TicketAiServiceImplTest {
 
         // Assert
         assertThat(result).isEqualTo(expectedResponse);
-        verify(auditLogService).createAiProposal(1L, "AI_CLASSIFY", "Palabras clave de VPN detectadas");
+        verify(auditLogService).createAiClassificationProposal(1L, "Palabras clave de VPN detectadas", "Redes", TicketPriority.HIGH);
     }
 
     @Test
@@ -99,7 +99,7 @@ class TicketAiServiceImplTest {
         // Act & Assert
         assertThatThrownBy(() -> ticketAiService.classifyTicket(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verify(auditLogService, never()).createAiProposal(anyLong(), anyString(), anyString());
+        verify(auditLogService, never()).createAiClassificationProposal(anyLong(), anyString(), anyString(), any());
     }
 
     @Test
@@ -113,7 +113,7 @@ class TicketAiServiceImplTest {
         // Act & Assert
         assertThatThrownBy(() -> ticketAiService.classifyTicket(1L))
                 .isInstanceOf(BadRequestException.class);
-        verify(auditLogService, never()).createAiProposal(anyLong(), anyString(), anyString());
+        verify(auditLogService, never()).createAiClassificationProposal(anyLong(), anyString(), anyString(), any());
     }
 
     @Test
@@ -137,7 +137,7 @@ class TicketAiServiceImplTest {
                 "Los usuarios no pueden conectarse a la VPN corporativa",
                 List.of("Contenido del documento 1", "Contenido del documento 2")))
                 .thenReturn(Optional.of(classification));
-        when(auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Basado en el documento de VPN"))
+        when(auditLogService.createAiClassificationProposal(1L, "Basado en el documento de VPN", "Redes", TicketPriority.HIGH))
                 .thenReturn(expectedResponse);
 
         // Act
@@ -161,7 +161,8 @@ class TicketAiServiceImplTest {
         when(geminiClient.classifyTicket(
                 "VPN no conecta", "Los usuarios no pueden conectarse a la VPN corporativa", List.of()))
                 .thenReturn(Optional.of(classification));
-        when(auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Sin contexto adicional")).thenReturn(expectedResponse);
+        when(auditLogService.createAiClassificationProposal(1L, "Sin contexto adicional", "Redes", TicketPriority.HIGH))
+                .thenReturn(expectedResponse);
 
         // Act
         AuditLogResponse result = ticketAiService.classifyTicket(1L);
@@ -185,7 +186,7 @@ class TicketAiServiceImplTest {
         when(geminiClient.embedText(anyString())).thenReturn(Optional.empty());
         when(geminiClient.classifyTicket(anyString(), anyString(), eq(List.of())))
                 .thenReturn(Optional.of(classification));
-        when(auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Coincide con un ticket ya abierto"))
+        when(auditLogService.createAiClassificationProposal(1L, "Coincide con un ticket ya abierto", "Impresoras", TicketPriority.LOW))
                 .thenReturn(classifyResponse);
         when(auditLogService.createAiProposal(1L, "CLOSE", "Duplicado del ticket #8, mismo activo e incidencia"))
                 .thenReturn(closeResponse);
@@ -195,7 +196,7 @@ class TicketAiServiceImplTest {
 
         // Assert: the endpoint still returns the classification log
         assertThat(result).isEqualTo(classifyResponse);
-        verify(auditLogService).createAiProposal(1L, "AI_CLASSIFY", "Coincide con un ticket ya abierto");
+        verify(auditLogService).createAiClassificationProposal(1L, "Coincide con un ticket ya abierto", "Impresoras", TicketPriority.LOW);
         verify(auditLogService).createAiProposal(1L, "CLOSE", "Duplicado del ticket #8, mismo activo e incidencia");
     }
 
@@ -211,7 +212,7 @@ class TicketAiServiceImplTest {
         when(geminiClient.embedText(anyString())).thenReturn(Optional.empty());
         when(geminiClient.classifyTicket(anyString(), anyString(), eq(List.of())))
                 .thenReturn(Optional.of(classification));
-        when(auditLogService.createAiProposal(1L, "AI_CLASSIFY", "Caso ambiguo, sin accion clara"))
+        when(auditLogService.createAiClassificationProposal(1L, "Caso ambiguo, sin accion clara", "Redes", TicketPriority.MEDIUM))
                 .thenReturn(classifyResponse);
 
         // Act
@@ -219,7 +220,6 @@ class TicketAiServiceImplTest {
 
         // Assert
         assertThat(result).isEqualTo(classifyResponse);
-        verify(auditLogService, org.mockito.Mockito.times(1))
-                .createAiProposal(anyLong(), anyString(), anyString());
+        verify(auditLogService, never()).createAiProposal(anyLong(), anyString(), anyString());
     }
 }

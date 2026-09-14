@@ -57,8 +57,8 @@ public class TicketAiServiceImpl implements TicketAiService {
                 ticketId, classification.category(), classification.priority(), classification.reasoning(),
                 context.size());
 
-        AuditLogResponse classificationLog =
-                auditLogService.createAiProposal(ticketId, "AI_CLASSIFY", classification.reasoning());
+        AuditLogResponse classificationLog = auditLogService.createAiClassificationProposal(
+                ticketId, classification.reasoning(), classification.category(), classification.priority());
 
         ActionProposal proposal = classification.actionProposal();
         if (proposal != null) {

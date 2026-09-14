@@ -7,12 +7,14 @@ import com.nemblex.entity.AppUser;
 import com.nemblex.entity.AuditLog;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.AuditResultStatus;
+import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.exception.BadRequestException;
 import com.nemblex.exception.ResourceNotFoundException;
 import com.nemblex.mapper.AuditLogMapper;
 import com.nemblex.repository.AppUserRepository;
 import com.nemblex.repository.AuditLogRepository;
+import com.nemblex.repository.CategoryRepository;
 import com.nemblex.repository.TicketRepository;
 import com.nemblex.service.interfaces.AuditLogService;
 import java.util.List;
@@ -26,15 +28,18 @@ public class AuditLogServiceImpl implements AuditLogService {
     private final AuditLogRepository auditLogRepository;
     private final TicketRepository ticketRepository;
     private final AppUserRepository userRepository;
+    private final CategoryRepository categoryRepository;
     private final AuditLogMapper auditLogMapper;
 
     public AuditLogServiceImpl(AuditLogRepository auditLogRepository,
                                TicketRepository ticketRepository,
                                AppUserRepository userRepository,
+                               CategoryRepository categoryRepository,
                                AuditLogMapper auditLogMapper) {
         this.auditLogRepository = auditLogRepository;
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
+        this.categoryRepository = categoryRepository;
         this.auditLogMapper = auditLogMapper;
     }
 
@@ -91,11 +96,35 @@ public class AuditLogServiceImpl implements AuditLogService {
         auditLog.setResultStatus(target);
         auditLog.setApprovedBy(approver);
 
-        Ticket ticket = auditLog.getTicket();
-        ticket.setStatus(target == AuditResultStatus.APPROVED ? TicketStatus.RESOLVED : TicketStatus.IN_PROGRESS);
-        ticketRepository.saveAndFlush(ticket);
+        if (target == AuditResultStatus.APPROVED && applyApprovedAction(auditLog)) {
+            ticketRepository.saveAndFlush(auditLog.getTicket());
+        }
 
         return auditLogMapper.toResponse(auditLogRepository.saveAndFlush(auditLog));
+    }
+
+    private boolean applyApprovedAction(AuditLog auditLog) {
+        Ticket ticket = auditLog.getTicket();
+        switch (auditLog.getAction()) {
+            case "CLOSE" -> ticket.setStatus(TicketStatus.RESOLVED);
+            case "ESCALATE" -> ticket.setStatus(TicketStatus.IN_PROGRESS);
+            case "REASSIGN" -> ticket.setAssignedTo(null);
+            case "AI_CLASSIFY" -> applyAiClassification(auditLog, ticket);
+            default -> {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void applyAiClassification(AuditLog auditLog, Ticket ticket) {
+        if (auditLog.getProposedPriority() != null) {
+            ticket.setPriority(auditLog.getProposedPriority());
+        }
+        if (auditLog.getProposedCategory() != null) {
+            categoryRepository.findByNameIgnoreCase(auditLog.getProposedCategory())
+                    .ifPresent(ticket::setCategory);
+        }
     }
 
     @Override
@@ -149,6 +178,28 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .ticket(ticket)
                 .action(action)
                 .reason(reasoning)
+                .resultStatus(AuditResultStatus.PENDING)
+                .build();
+
+        return auditLogMapper.toResponse(auditLogRepository.saveAndFlush(auditLog));
+    }
+
+    @Override
+    public AuditLogResponse createAiClassificationProposal(Long ticketId, String reasoning, String category,
+                                                             TicketPriority priority) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        if (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED) {
+            throw new BadRequestException(
+                    "Ticket " + ticket.getId() + " is already " + ticket.getStatus() + ", nothing to propose");
+        }
+
+        AuditLog auditLog = AuditLog.builder()
+                .ticket(ticket)
+                .action("AI_CLASSIFY")
+                .reason(reasoning)
+                .proposedCategory(category)
+                .proposedPriority(priority)
                 .resultStatus(AuditResultStatus.PENDING)
                 .build();
 
