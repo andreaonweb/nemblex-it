@@ -20,6 +20,21 @@
   }
 }
 
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+
+  &__field {
+    width: 160px;
+
+    &--search {
+      flex: 1 1 200px;
+    }
+  }
+}
+
 .new-ticket-card {
   padding: 20px !important;
   margin-bottom: 20px;
