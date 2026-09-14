@@ -53,6 +53,8 @@ public class SecurityConfig {
                             .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.PUT, "/api/tickets/*/assign-to-me")
                             .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/tickets/*/unassign")
+                            .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/tickets/*/classify")
                             .hasAnyRole("TECHNICIAN", "SUPERVISOR", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/tickets/**")

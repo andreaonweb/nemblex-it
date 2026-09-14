@@ -78,4 +78,21 @@ class CustomAuthenticationManagerTest {
         assertThat(result.getName()).isEqualTo("ana@nemblex.dev");
         assertThat(result.isAuthenticated()).isTrue();
     }
+
+    @Test
+    void authenticate_shouldKeepTheUserDetailsAsPrincipal_soDownstreamCodeCanAccessTheDomainUser() {
+        // Arrange
+        UserDetails userDetails = User.withUsername("ana@nemblex.dev")
+                .password(passwordEncoder.encode("correct-password"))
+                .authorities("ROLE_TECHNICIAN")
+                .build();
+        when(userService.loadUserByUsername("ana@nemblex.dev")).thenReturn(userDetails);
+        Authentication request = new UsernamePasswordAuthenticationToken("ana@nemblex.dev", "correct-password");
+
+        // Act
+        Authentication result = authenticationManager.authenticate(request);
+
+        // Assert
+        assertThat(result.getPrincipal()).isSameAs(userDetails);
+    }
 }

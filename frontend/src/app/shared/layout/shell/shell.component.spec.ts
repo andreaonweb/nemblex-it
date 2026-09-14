@@ -23,25 +23,25 @@ describe('ShellComponent', () => {
   });
 
   it('shows only Incidencias for a TECHNICIAN', () => {
-    authServiceStub.currentUser.set({ email: 'ana.torres@nemblex.dev', role: 'TECHNICIAN' });
+    authServiceStub.currentUser.set({ id: 1, email: 'ana.torres@nemblex.dev', role: 'TECHNICIAN' });
 
     expect(component.navItems().map((i) => i.label)).toEqual(['Incidencias']);
   });
 
   it('shows Incidencias and Aprobaciones for a SUPERVISOR', () => {
-    authServiceStub.currentUser.set({ email: 'beatriz.ruiz@nemblex.dev', role: 'SUPERVISOR' });
+    authServiceStub.currentUser.set({ id: 2, email: 'beatriz.ruiz@nemblex.dev', role: 'SUPERVISOR' });
 
     expect(component.navItems().map((i) => i.label)).toEqual(['Incidencias', 'Aprobaciones']);
   });
 
   it('shows Incidencias and Aprobaciones for an ADMIN', () => {
-    authServiceStub.currentUser.set({ email: 'admin@nemblex.dev', role: 'ADMIN' });
+    authServiceStub.currentUser.set({ id: 3, email: 'admin@nemblex.dev', role: 'ADMIN' });
 
     expect(component.navItems().map((i) => i.label)).toEqual(['Incidencias', 'Aprobaciones']);
   });
 
   it('shows only Mis tickets for an EMPLOYEE', () => {
-    authServiceStub.currentUser.set({ email: 'carlos.mendez@nemblex.dev', role: 'EMPLOYEE' });
+    authServiceStub.currentUser.set({ id: 4, email: 'carlos.mendez@nemblex.dev', role: 'EMPLOYEE' });
 
     expect(component.navItems()).toEqual([{ label: 'Mis tickets', path: '/my-tickets' }]);
   });

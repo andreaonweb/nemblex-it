@@ -32,7 +32,7 @@ describe('LoginComponent', () => {
 
   it('calls AuthService.login with the form values and navigates to /tickets on success', () => {
     authServiceStub.login.and.returnValue(of({ token: 'x', email: 'ana.torres@nemblex.dev' } as JwtResponse));
-    authServiceStub.currentUser = () => ({ email: 'ana.torres@nemblex.dev', role: 'TECHNICIAN' });
+    authServiceStub.currentUser = () => ({ id: 1, email: 'ana.torres@nemblex.dev', role: 'TECHNICIAN' });
     component.form.setValue({ email: 'ana.torres@nemblex.dev', password: 'technician123' });
 
     component.submit();
@@ -46,7 +46,7 @@ describe('LoginComponent', () => {
 
   it('navigates an EMPLOYEE to /my-tickets on success', () => {
     authServiceStub.login.and.returnValue(of({ token: 'x', email: 'carlos.mendez@nemblex.dev' } as JwtResponse));
-    authServiceStub.currentUser = () => ({ email: 'carlos.mendez@nemblex.dev', role: 'EMPLOYEE' });
+    authServiceStub.currentUser = () => ({ id: 4, email: 'carlos.mendez@nemblex.dev', role: 'EMPLOYEE' });
     component.form.setValue({ email: 'carlos.mendez@nemblex.dev', password: 'employee123' });
 
     component.submit();

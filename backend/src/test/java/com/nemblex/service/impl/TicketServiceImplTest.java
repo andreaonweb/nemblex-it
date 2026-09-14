@@ -13,11 +13,13 @@ import com.nemblex.dto.request.TicketUpdateRequest;
 import com.nemblex.dto.response.TicketResponse;
 import com.nemblex.entity.AppUser;
 import com.nemblex.entity.Ticket;
+import com.nemblex.entity.enums.Role;
 import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.event.TicketCreatedEvent;
 import com.nemblex.exception.BadRequestException;
 import com.nemblex.exception.ResourceNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import com.nemblex.mapper.TicketMapper;
 import com.nemblex.repository.AppUserRepository;
 import com.nemblex.repository.CategoryRepository;
@@ -307,6 +309,115 @@ class TicketServiceImplTest {
         // Act & Assert
         assertThatThrownBy(() -> ticketService.assignToMe(1L, 3L))
                 .isInstanceOf(BadRequestException.class);
+        verify(ticketRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void assignToMe_shouldThrowBadRequestException_whenAlreadyAssignedToAnotherUser() {
+        // Arrange
+        AppUser otherTechnician = AppUser.builder().id(9L).name("Beatriz Ruiz").build();
+        Ticket existingTicket = Ticket.builder()
+                .id(1L)
+                .status(TicketStatus.NEW)
+                .assignedTo(otherTechnician)
+                .build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+
+        // Act & Assert
+        assertThatThrownBy(() -> ticketService.assignToMe(1L, 3L))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("ya esta asignado a otro tecnico");
+        verify(ticketRepository, never()).saveAndFlush(any());
+        verify(userRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    void assignToMe_shouldBeIdempotent_whenAlreadyAssignedToTheSameUser() {
+        // Arrange
+        AppUser technician = AppUser.builder().id(3L).name("Ana Torres").build();
+        Ticket existingTicket = Ticket.builder()
+                .id(1L)
+                .status(TicketStatus.NEW)
+                .assignedTo(technician)
+                .build();
+        TicketResponse expectedResponse = TicketResponse.builder().id(1L).assignedToId(3L).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+        when(ticketMapper.toResponse(existingTicket)).thenReturn(expectedResponse);
+
+        // Act
+        TicketResponse result = ticketService.assignToMe(1L, 3L);
+
+        // Assert
+        assertThat(result).isEqualTo(expectedResponse);
+        verify(ticketRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void unassign_shouldClearAssignment_whenRequestedByTheAssignee() {
+        // Arrange
+        AppUser technician = AppUser.builder().id(3L).name("Ana Torres").role(Role.TECHNICIAN).build();
+        Ticket existingTicket = Ticket.builder().id(1L).assignedTo(technician).build();
+        TicketResponse expectedResponse = TicketResponse.builder().id(1L).assignedToId(null).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+        when(userRepository.findById(3L)).thenReturn(Optional.of(technician));
+        when(ticketRepository.saveAndFlush(existingTicket)).thenReturn(existingTicket);
+        when(ticketMapper.toResponse(existingTicket)).thenReturn(expectedResponse);
+
+        // Act
+        TicketResponse result = ticketService.unassign(1L, 3L);
+
+        // Assert
+        assertThat(result).isEqualTo(expectedResponse);
+        assertThat(existingTicket.getAssignedTo()).isNull();
+    }
+
+    @Test
+    void unassign_shouldClearAssignment_whenRequestedBySupervisor_evenIfNotTheAssignee() {
+        // Arrange
+        AppUser technician = AppUser.builder().id(3L).name("Ana Torres").role(Role.TECHNICIAN).build();
+        AppUser supervisor = AppUser.builder().id(2L).name("Beatriz Ruiz").role(Role.SUPERVISOR).build();
+        Ticket existingTicket = Ticket.builder().id(1L).assignedTo(technician).build();
+        TicketResponse expectedResponse = TicketResponse.builder().id(1L).assignedToId(null).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(supervisor));
+        when(ticketRepository.saveAndFlush(existingTicket)).thenReturn(existingTicket);
+        when(ticketMapper.toResponse(existingTicket)).thenReturn(expectedResponse);
+
+        // Act
+        TicketResponse result = ticketService.unassign(1L, 2L);
+
+        // Assert
+        assertThat(result).isEqualTo(expectedResponse);
+        assertThat(existingTicket.getAssignedTo()).isNull();
+    }
+
+    @Test
+    void unassign_shouldThrowAccessDeniedException_whenRequestedByAnotherTechnician() {
+        // Arrange
+        AppUser assignee = AppUser.builder().id(3L).name("Ana Torres").role(Role.TECHNICIAN).build();
+        AppUser otherTechnician = AppUser.builder().id(4L).name("Carlos Mendez").role(Role.TECHNICIAN).build();
+        Ticket existingTicket = Ticket.builder().id(1L).assignedTo(assignee).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+        when(userRepository.findById(4L)).thenReturn(Optional.of(otherTechnician));
+
+        // Act & Assert
+        assertThatThrownBy(() -> ticketService.unassign(1L, 4L))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(ticketRepository, never()).saveAndFlush(any());
+        assertThat(existingTicket.getAssignedTo()).isEqualTo(assignee);
+    }
+
+    @Test
+    void unassign_shouldThrowBadRequestException_whenTicketHasNoAssignee() {
+        // Arrange
+        Ticket existingTicket = Ticket.builder().id(1L).assignedTo(null).build();
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(existingTicket));
+
+        // Act & Assert
+        assertThatThrownBy(() -> ticketService.unassign(1L, 3L))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("no esta asignado a nadie");
+        verify(userRepository, never()).findById(anyLong());
         verify(ticketRepository, never()).saveAndFlush(any());
     }
 

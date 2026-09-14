@@ -25,14 +25,14 @@ describe('roleGuard', () => {
   }
 
   it('allows navigation when the current user has one of the allowed roles', () => {
-    authServiceStub.currentUser = () => ({ email: 'beatriz.ruiz@nemblex.dev', role: 'SUPERVISOR' });
+    authServiceStub.currentUser = () => ({ id: 2, email: 'beatriz.ruiz@nemblex.dev', role: 'SUPERVISOR' });
 
     expect(runGuard(['SUPERVISOR', 'ADMIN'])).toBeTrue();
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('redirects to /tickets and blocks navigation when the role is not allowed', () => {
-    authServiceStub.currentUser = () => ({ email: 'ana.torres@nemblex.dev', role: 'TECHNICIAN' });
+    authServiceStub.currentUser = () => ({ id: 1, email: 'ana.torres@nemblex.dev', role: 'TECHNICIAN' });
 
     expect(runGuard(['SUPERVISOR', 'ADMIN'])).toBeFalse();
     expect(router.navigate).toHaveBeenCalledWith(['/tickets']);
@@ -46,7 +46,7 @@ describe('roleGuard', () => {
   });
 
   it('redirects an EMPLOYEE to /my-tickets when the role is not allowed', () => {
-    authServiceStub.currentUser = () => ({ email: 'carlos.mendez@nemblex.dev', role: 'EMPLOYEE' });
+    authServiceStub.currentUser = () => ({ id: 4, email: 'carlos.mendez@nemblex.dev', role: 'EMPLOYEE' });
 
     expect(runGuard(['TECHNICIAN', 'SUPERVISOR', 'ADMIN'])).toBeFalse();
     expect(router.navigate).toHaveBeenCalledWith(['/my-tickets']);

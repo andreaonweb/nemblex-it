@@ -103,6 +103,33 @@ describe('TicketService', () => {
     expect(result).toEqual(mockTicket);
   });
 
+  it('releases the assignment via PUT /api/tickets/{id}/unassign', () => {
+    const mockTicket: Ticket = {
+      id: 1,
+      title: 'VPN caída',
+      description: 'desc',
+      status: 'NEW',
+      priority: 'HIGH',
+      categoryId: null,
+      categoryName: null,
+      createdById: 1,
+      createdByName: 'Ana Torres',
+      assignedToId: null,
+      assignedToName: null,
+      createdAt: '2026-09-07T10:00:00',
+      updatedAt: '2026-09-07T10:05:00'
+    };
+
+    let result: Ticket | undefined;
+    service.unassign(1).subscribe((ticket) => (result = ticket));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tickets/1/unassign`);
+    expect(req.request.method).toBe('PUT');
+    req.flush(mockTicket);
+
+    expect(result).toEqual(mockTicket);
+  });
+
   it('creates a ticket via POST /api/tickets', () => {
     const mockTicket: Ticket = {
       id: 20,

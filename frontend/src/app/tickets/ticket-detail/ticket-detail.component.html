@@ -81,10 +81,18 @@
       <button mat-flat-button color="primary" (click)="assignToMe()" [disabled]="assigning()">
         @if (assigning()) { <mat-spinner diameter="18" /> } @else { Asignarme }
       </button>
+      @if (canUnassign()) {
+        <button mat-stroked-button (click)="unassignTicket()" [disabled]="unassigning()">
+          @if (unassigning()) { <mat-spinner diameter="18" /> } @else { Liberar asignación }
+        </button>
+      }
       <button mat-stroked-button (click)="toggleResolveForm()">Resolver</button>
     </div>
     @if (assignError()) {
       <p class="actions__error" role="alert">{{ assignError() }}</p>
+    }
+    @if (unassignError()) {
+      <p class="actions__error" role="alert">{{ unassignError() }}</p>
     }
 
     @if (resolveOpen()) {

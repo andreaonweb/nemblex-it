@@ -20,5 +20,7 @@ public interface TicketService {
 
     TicketResponse assignToMe(Long id, Long userId);
 
+    TicketResponse unassign(Long id, Long userId);
+
     List<TicketResponse> getMyTickets(Long userId);
 }

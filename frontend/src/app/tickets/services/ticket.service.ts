@@ -18,6 +18,10 @@ export class TicketService {
     return this.http.put<Ticket>(`${this.baseUrl}/${id}/assign-to-me`, {});
   }
 
+  unassign(id: number): Observable<Ticket> {
+    return this.http.put<Ticket>(`${this.baseUrl}/${id}/unassign`, {});
+  }
+
   getById(id: number): Observable<Ticket> {
     return this.http.get<Ticket>(`${this.baseUrl}/${id}`);
   }
