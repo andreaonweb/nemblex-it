@@ -5,13 +5,19 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 
 import { TicketService } from '../services/ticket.service';
 import { AuditLogService } from '../../audit-logs/services/audit-log.service';
-import { Ticket } from '../models/ticket.models';
+import { Ticket, TicketPriority, TicketStatus } from '../models/ticket.models';
 import { AuditLog } from '../../audit-logs/models/audit-log.models';
-import { PRIORITY_LABELS, STATUS_COLORS, STATUS_LABELS } from '../models/ticket-labels';
+import { PRIORITY_LABELS, PRIORITY_ORDER, STATUS_COLORS, STATUS_LABELS, STATUS_ORDER } from '../models/ticket-labels';
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 @Component({
   selector: 'app-my-tickets-page',
@@ -23,7 +29,9 @@ import { PRIORITY_LABELS, STATUS_COLORS, STATUS_LABELS } from '../models/ticket-
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
-    MatProgressSpinnerModule
+    MatPaginatorModule,
+    MatProgressSpinnerModule,
+    MatSelectModule
   ],
   templateUrl: './my-tickets-page.component.html',
   styleUrl: './my-tickets-page.component.scss'
@@ -32,6 +40,7 @@ export class MyTicketsPageComponent implements OnInit, OnDestroy {
   private static readonly ACTIVITY_POLL_INTERVAL_MS = 4000;
 
   private pollTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private readonly searchInput$ = new Subject<string>();
 
   private readonly ticketService = inject(TicketService);
   private readonly auditLogService = inject(AuditLogService);
@@ -40,10 +49,20 @@ export class MyTicketsPageComponent implements OnInit, OnDestroy {
   protected readonly statusLabels = STATUS_LABELS;
   protected readonly statusColors = STATUS_COLORS;
   protected readonly priorityLabels = PRIORITY_LABELS;
+  protected readonly statusOptions: (TicketStatus | 'Todos')[] = ['Todos', ...STATUS_ORDER];
+  protected readonly priorityOptions: (TicketPriority | 'Todas')[] = ['Todas', ...PRIORITY_ORDER];
+  protected readonly pageSizeOptions = [10, 20, 50];
 
   readonly tickets = signal<Ticket[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+
+  readonly statusFilter = signal<TicketStatus | 'Todos'>('Todos');
+  readonly priorityFilter = signal<TicketPriority | 'Todas'>('Todas');
+  readonly search = signal('');
+  readonly page = signal(0);
+  readonly pageSize = signal(20);
+  readonly totalElements = signal(0);
 
   readonly formOpen = signal(false);
   readonly submitting = signal(false);
@@ -58,6 +77,14 @@ export class MyTicketsPageComponent implements OnInit, OnDestroy {
     description: ['', Validators.required]
   });
 
+  constructor() {
+    this.searchInput$.pipe(debounceTime(SEARCH_DEBOUNCE_MS)).subscribe((value) => {
+      this.search.set(value);
+      this.page.set(0);
+      this.loadTickets();
+    });
+  }
+
   ngOnInit(): void {
     this.loadTickets();
   }
@@ -65,16 +92,49 @@ export class MyTicketsPageComponent implements OnInit, OnDestroy {
   private loadTickets(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.ticketService.getMine().subscribe({
-      next: (tickets) => {
-        this.tickets.set(tickets);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('No se pudieron cargar tus incidencias.');
-        this.loading.set(false);
-      }
-    });
+    const status = this.statusFilter();
+    const priority = this.priorityFilter();
+    this.ticketService
+      .getMine({
+        status: status === 'Todos' ? undefined : status,
+        priority: priority === 'Todas' ? undefined : priority,
+        search: this.search() || undefined,
+        page: this.page(),
+        size: this.pageSize()
+      })
+      .subscribe({
+        next: (response) => {
+          this.tickets.set(response.content);
+          this.totalElements.set(response.totalElements);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('No se pudieron cargar tus incidencias.');
+          this.loading.set(false);
+        }
+      });
+  }
+
+  onStatusFilterChange(value: TicketStatus | 'Todos'): void {
+    this.statusFilter.set(value);
+    this.page.set(0);
+    this.loadTickets();
+  }
+
+  onPriorityFilterChange(value: TicketPriority | 'Todas'): void {
+    this.priorityFilter.set(value);
+    this.page.set(0);
+    this.loadTickets();
+  }
+
+  onSearchInput(value: string): void {
+    this.searchInput$.next(value);
+  }
+
+  onPage(event: PageEvent): void {
+    this.page.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+    this.loadTickets();
   }
 
   toggleForm(): void {
@@ -97,6 +157,7 @@ export class MyTicketsPageComponent implements OnInit, OnDestroy {
         this.formOpen.set(false);
         this.form.reset({ title: '', description: '' });
         this.tickets.update((current) => [created, ...current]);
+        this.totalElements.update((total) => total + 1);
       },
       error: () => {
         this.submitting.set(false);

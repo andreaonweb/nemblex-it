@@ -2,15 +2,21 @@ package com.nemblex.service.interfaces;
 
 import com.nemblex.dto.request.TicketRequest;
 import com.nemblex.dto.request.TicketUpdateRequest;
+import com.nemblex.dto.response.PagedResponse;
 import com.nemblex.dto.response.TicketResponse;
+import com.nemblex.dto.response.TicketStatsResponse;
+import com.nemblex.entity.enums.TicketPriority;
 import com.nemblex.entity.enums.TicketStatus;
-import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 public interface TicketService {
 
     TicketResponse createTicket(TicketRequest request, Long creatorId);
 
-    List<TicketResponse> getAllTickets(TicketStatus status, Long categoryId);
+    PagedResponse<TicketResponse> getAllTickets(TicketStatus status, TicketPriority priority, Long categoryId,
+                                                 String search, Pageable pageable);
+
+    TicketStatsResponse getStats();
 
     TicketResponse getTicketById(Long id);
 
@@ -22,5 +28,8 @@ public interface TicketService {
 
     TicketResponse unassign(Long id, Long userId);
 
-    List<TicketResponse> getMyTickets(Long userId);
+    PagedResponse<TicketResponse> getMyTickets(Long userId, TicketStatus status, TicketPriority priority,
+                                                String search, Pageable pageable);
+
+    TicketStatsResponse getMyStats(Long userId);
 }

@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { catchError, of } from 'rxjs';
 
@@ -20,7 +21,7 @@ export interface ApprovalCardState {
 @Component({
   selector: 'app-approvals-page',
   standalone: true,
-  imports: [MatButtonModule, MatCardModule, MatProgressSpinnerModule],
+  imports: [MatButtonModule, MatCardModule, MatPaginatorModule, MatProgressSpinnerModule],
   templateUrl: './approvals-page.component.html',
   styleUrl: './approvals-page.component.scss'
 })
@@ -30,25 +31,41 @@ export class ApprovalsPageComponent implements OnInit {
 
   protected readonly priorityLabels = PRIORITY_LABELS;
   protected readonly priorityColors = PRIORITY_COLORS;
+  protected readonly pageSizeOptions = [10, 20, 50];
 
   readonly cards = signal<ApprovalCardState[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  readonly page = signal(0);
+  readonly pageSize = signal(20);
+  readonly totalElements = signal(0);
+
   ngOnInit(): void {
+    this.loadPending();
+  }
+
+  private loadPending(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.auditLogService.listPending().subscribe({
-      next: (logs) => {
-        this.cards.set(logs.map((log) => ({ log, ticket: null, processing: false, error: null })));
+    this.auditLogService.listPending(this.page(), this.pageSize()).subscribe({
+      next: (response) => {
+        this.cards.set(response.content.map((log) => ({ log, ticket: null, processing: false, error: null })));
+        this.totalElements.set(response.totalElements);
         this.loading.set(false);
-        logs.forEach((log) => this.loadTicket(log.ticketId));
+        response.content.forEach((log) => this.loadTicket(log.ticketId));
       },
       error: () => {
         this.error.set('No se pudo cargar la cola de aprobaciones.');
         this.loading.set(false);
       }
     });
+  }
+
+  onPage(event: PageEvent): void {
+    this.page.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+    this.loadPending();
   }
 
   private loadTicket(ticketId: number): void {

@@ -3,12 +3,16 @@ package com.nemblex.controller;
 import com.nemblex.dto.request.AuditLogApprovalRequest;
 import com.nemblex.dto.request.AuditLogRequest;
 import com.nemblex.dto.response.AuditLogResponse;
+import com.nemblex.dto.response.PagedResponse;
 import com.nemblex.security.AuthenticatedUserResolver;
 import com.nemblex.service.interfaces.AuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,10 +61,11 @@ public class AuditLogController {
         return ResponseEntity.ok(auditLogService.getLogsByTicket(ticketId, userResolver.resolve(authentication)));
     }
 
-    @Operation(summary = "Lista los registros de auditoria pendientes de aprobacion (SUPERVISOR o ADMIN)")
+    @Operation(summary = "Lista paginada de los registros de auditoria pendientes de aprobacion (SUPERVISOR o ADMIN)")
     @GetMapping("/pending")
-    public ResponseEntity<List<AuditLogResponse>> getPending() {
-        return ResponseEntity.ok(auditLogService.getAllPending());
+    public ResponseEntity<PagedResponse<AuditLogResponse>> getPending(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(auditLogService.getAllPending(pageable));
     }
 
     @Operation(summary = "Aprueba o rechaza un registro de auditoria pendiente (SUPERVISOR o ADMIN)")

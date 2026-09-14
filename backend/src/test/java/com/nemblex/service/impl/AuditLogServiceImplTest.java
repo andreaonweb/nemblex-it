@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.nemblex.dto.request.AuditLogApprovalRequest;
 import com.nemblex.dto.request.AuditLogRequest;
 import com.nemblex.dto.response.AuditLogResponse;
+import com.nemblex.dto.response.PagedResponse;
 import com.nemblex.entity.AppUser;
 import com.nemblex.entity.AuditLog;
 import com.nemblex.entity.Category;
@@ -36,6 +37,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class AuditLogServiceImplTest {
@@ -183,15 +188,18 @@ class AuditLogServiceImplTest {
         // Arrange
         AuditLog log = AuditLog.builder().id(1L).resultStatus(AuditResultStatus.PENDING).build();
         AuditLogResponse response = AuditLogResponse.builder().id(1L).resultStatus(AuditResultStatus.PENDING).build();
-        when(auditLogRepository.findByResultStatus(AuditResultStatus.PENDING)).thenReturn(List.of(log));
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<AuditLog> page = new PageImpl<>(List.of(log), pageable, 1);
+        when(auditLogRepository.findByResultStatus(AuditResultStatus.PENDING, pageable)).thenReturn(page);
         when(auditLogMapper.toResponse(log)).thenReturn(response);
 
         // Act
-        List<AuditLogResponse> result = auditLogService.getAllPending();
+        PagedResponse<AuditLogResponse> result = auditLogService.getAllPending(pageable);
 
         // Assert
-        assertThat(result).containsExactly(response);
-        verify(auditLogRepository).findByResultStatus(AuditResultStatus.PENDING);
+        assertThat(result.getContent()).containsExactly(response);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        verify(auditLogRepository).findByResultStatus(AuditResultStatus.PENDING, pageable);
     }
 
     @Test

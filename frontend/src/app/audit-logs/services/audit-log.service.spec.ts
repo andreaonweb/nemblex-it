@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 
 import { AuditLogService } from './audit-log.service';
 import { AuditLog } from '../models/audit-log.models';
+import { PagedResponse } from '../../shared/models/paged-response.model';
 import { environment } from '../../../environments/environment';
 
 describe('AuditLogService', () => {
@@ -67,28 +68,45 @@ describe('AuditLogService', () => {
     expect(result).toEqual(mockLog);
   });
 
-  it('fetches pending audit logs from GET /api/audit-logs/pending', () => {
-    const mockLogs: AuditLog[] = [
-      {
-        id: 3,
-        ticketId: 9,
-        action: 'PROPUESTA_IA',
-        reason: 'Reiniciar el servicio de VPN',
-        employeeMessage: null,
-        resultStatus: 'PENDING',
-        approvedByName: null,
-        createdAt: '2026-09-07T10:00:00'
-      }
-    ];
+  it('fetches a page of pending audit logs from GET /api/audit-logs/pending', () => {
+    const mockPage: PagedResponse<AuditLog> = {
+      content: [
+        {
+          id: 3,
+          ticketId: 9,
+          action: 'PROPUESTA_IA',
+          reason: 'Reiniciar el servicio de VPN',
+          employeeMessage: null,
+          resultStatus: 'PENDING',
+          approvedByName: null,
+          createdAt: '2026-09-07T10:00:00'
+        }
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1
+    };
 
-    let result: AuditLog[] | undefined;
-    service.listPending().subscribe((logs) => (result = logs));
+    let result: PagedResponse<AuditLog> | undefined;
+    service.listPending().subscribe((page) => (result = page));
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/audit-logs/pending`);
+    const req = httpMock.expectOne((r) => r.url === `${environment.apiUrl}/api/audit-logs/pending`);
     expect(req.request.method).toBe('GET');
-    req.flush(mockLogs);
+    expect(req.request.params.get('page')).toBe('0');
+    expect(req.request.params.get('size')).toBe('20');
+    req.flush(mockPage);
 
-    expect(result).toEqual(mockLogs);
+    expect(result).toEqual(mockPage);
+  });
+
+  it('sends the requested page and size on GET /api/audit-logs/pending', () => {
+    service.listPending(2, 5).subscribe();
+
+    const req = httpMock.expectOne((r) => r.url === `${environment.apiUrl}/api/audit-logs/pending`);
+    expect(req.request.params.get('page')).toBe('2');
+    expect(req.request.params.get('size')).toBe('5');
+    req.flush({ content: [], page: 2, size: 5, totalElements: 0, totalPages: 0 });
   });
 
   it('approves or rejects a pending log via PUT /api/audit-logs/{id}/resolve', () => {

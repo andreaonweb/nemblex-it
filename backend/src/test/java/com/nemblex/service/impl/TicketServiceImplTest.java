@@ -10,7 +10,9 @@ import static org.mockito.Mockito.when;
 
 import com.nemblex.dto.request.TicketRequest;
 import com.nemblex.dto.request.TicketUpdateRequest;
+import com.nemblex.dto.response.PagedResponse;
 import com.nemblex.dto.response.TicketResponse;
+import com.nemblex.dto.response.TicketStatsResponse;
 import com.nemblex.entity.AppUser;
 import com.nemblex.entity.Ticket;
 import com.nemblex.entity.enums.Role;
@@ -19,11 +21,11 @@ import com.nemblex.entity.enums.TicketStatus;
 import com.nemblex.event.TicketCreatedEvent;
 import com.nemblex.exception.BadRequestException;
 import com.nemblex.exception.ResourceNotFoundException;
-import org.springframework.security.access.AccessDeniedException;
 import com.nemblex.mapper.TicketMapper;
 import com.nemblex.repository.AppUserRepository;
 import com.nemblex.repository.CategoryRepository;
 import com.nemblex.repository.TicketRepository;
+import com.nemblex.repository.TicketStatusPriorityCount;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class TicketServiceImplTest {
@@ -145,20 +152,83 @@ class TicketServiceImplTest {
     }
 
     @Test
-    void getAllTickets_shouldFilterByStatus_whenStatusProvided() {
+    void getAllTickets_shouldSearchWithFiltersAndPagination() {
         // Arrange
         Ticket ticket = Ticket.builder().id(1L).status(TicketStatus.NEW).build();
         TicketResponse response = TicketResponse.builder().id(1L).status(TicketStatus.NEW).build();
-        when(ticketRepository.findByStatus(TicketStatus.NEW)).thenReturn(List.of(ticket));
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Ticket> page = new PageImpl<>(List.of(ticket), pageable, 1);
+        when(ticketRepository.search(TicketStatus.NEW, TicketPriority.HIGH, 3L, null, "%vpn%", pageable))
+                .thenReturn(page);
         when(ticketMapper.toResponse(ticket)).thenReturn(response);
 
         // Act
-        List<TicketResponse> result = ticketService.getAllTickets(TicketStatus.NEW, null);
+        PagedResponse<TicketResponse> result =
+                ticketService.getAllTickets(TicketStatus.NEW, TicketPriority.HIGH, 3L, "vpn", pageable);
 
         // Assert
-        assertThat(result).containsExactly(response);
-        verify(ticketRepository).findByStatus(TicketStatus.NEW);
-        verify(ticketRepository, never()).findAll();
+        assertThat(result.getContent()).containsExactly(response);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        verify(ticketRepository).search(TicketStatus.NEW, TicketPriority.HIGH, 3L, null, "%vpn%", pageable);
+    }
+
+    @Test
+    void getAllTickets_shouldNormalizeBlankSearchToNull() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Ticket> page = new PageImpl<>(List.of(), pageable, 0);
+        when(ticketRepository.search(null, null, null, null, null, pageable)).thenReturn(page);
+
+        // Act
+        ticketService.getAllTickets(null, null, null, "   ", pageable);
+
+        // Assert
+        verify(ticketRepository).search(null, null, null, null, null, pageable);
+    }
+
+    @Test
+    void getStats_shouldSumOpenAndCriticalCountsAcrossAllTickets() {
+        // Arrange
+        List<TicketStatusPriorityCount> counts = List.of(
+                statusPriorityCount(TicketStatus.NEW, TicketPriority.HIGH, 2),
+                statusPriorityCount(TicketStatus.IN_PROGRESS, TicketPriority.LOW, 3),
+                statusPriorityCount(TicketStatus.RESOLVED, TicketPriority.HIGH, 5));
+        when(ticketRepository.countByStatusAndPriority(null)).thenReturn(counts);
+
+        // Act
+        TicketStatsResponse result = ticketService.getStats();
+
+        // Assert
+        assertThat(result.getAbiertas()).isEqualTo(5);
+        assertThat(result.getCriticas()).isEqualTo(2);
+        assertThat(result.getByStatus()).containsEntry(TicketStatus.NEW, 2L);
+        assertThat(result.getByStatus()).containsEntry(TicketStatus.IN_PROGRESS, 3L);
+        assertThat(result.getByStatus()).containsEntry(TicketStatus.RESOLVED, 5L);
+    }
+
+    @Test
+    void getMyStats_shouldScopeCountsToTheGivenUser() {
+        // Arrange
+        List<TicketStatusPriorityCount> counts =
+                List.of(statusPriorityCount(TicketStatus.NEW, TicketPriority.MEDIUM, 1));
+        when(ticketRepository.countByStatusAndPriority(7L)).thenReturn(counts);
+
+        // Act
+        TicketStatsResponse result = ticketService.getMyStats(7L);
+
+        // Assert
+        assertThat(result.getAbiertas()).isEqualTo(1);
+        assertThat(result.getCriticas()).isZero();
+        verify(ticketRepository).countByStatusAndPriority(7L);
+    }
+
+    private static TicketStatusPriorityCount statusPriorityCount(TicketStatus status, TicketPriority priority,
+                                                                   long count) {
+        TicketStatusPriorityCount mock = org.mockito.Mockito.mock(TicketStatusPriorityCount.class);
+        org.mockito.Mockito.lenient().when(mock.getStatus()).thenReturn(status);
+        org.mockito.Mockito.lenient().when(mock.getPriority()).thenReturn(priority);
+        org.mockito.Mockito.lenient().when(mock.getCount()).thenReturn(count);
+        return mock;
     }
 
     @Test
@@ -426,14 +496,16 @@ class TicketServiceImplTest {
         // Arrange
         Ticket ticket = Ticket.builder().id(1L).build();
         TicketResponse response = TicketResponse.builder().id(1L).build();
-        when(ticketRepository.findByCreatedById(7L)).thenReturn(List.of(ticket));
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Ticket> page = new PageImpl<>(List.of(ticket), pageable, 1);
+        when(ticketRepository.search(null, null, null, 7L, null, pageable)).thenReturn(page);
         when(ticketMapper.toResponse(ticket)).thenReturn(response);
 
         // Act
-        List<TicketResponse> result = ticketService.getMyTickets(7L);
+        PagedResponse<TicketResponse> result = ticketService.getMyTickets(7L, null, null, null, pageable);
 
         // Assert
-        assertThat(result).containsExactly(response);
-        verify(ticketRepository).findByCreatedById(7L);
+        assertThat(result.getContent()).containsExactly(response);
+        verify(ticketRepository).search(null, null, null, 7L, null, pageable);
     }
 }
