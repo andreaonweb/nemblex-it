@@ -4,6 +4,20 @@ Sistema de gestión de incidencias IT (helpdesk) con un agente de IA integrado: 
 
 Monorepo con backend en Java/Spring Boot, frontend en Angular y PostgreSQL (con pgvector) como base de datos.
 
+## Capturas
+
+| Login | Listado de incidencias |
+|---|---|
+| ![Login](docs/screenshots/01-login.jpg) | ![Listado de incidencias](docs/screenshots/02-listado-incidencias.jpg) |
+
+| Cola de aprobaciones | Detalle con clasificación IA |
+|---|---|
+| ![Cola de aprobaciones](docs/screenshots/03-cola-aprobaciones.jpg) | ![Detalle de incidencia con clasificación IA](docs/screenshots/04-detalle-clasificacion-ia.jpg) |
+
+| Mis tickets (rol Empleado) |
+|---|
+| ![Mis tickets](docs/screenshots/05-mis-tickets.jpg) |
+
 ## Stack
 
 - **Backend**: Java 21, Spring Boot 4.1.1 (Web, Data JPA, Security, Validation, Lombok), JWT (jjwt), springdoc-openapi (Swagger UI), Maven (con Maven Wrapper)
@@ -117,20 +131,6 @@ El seed de desarrollo (`DataSeeder`, solo activo con el perfil `dev`) crea estos
 - **Clasificación automática por IA** (Gemini): categoría y prioridad sugeridas al crear un ticket.
 - **Propuestas de resolución vía RAG** sobre una base de conocimiento (pgvector) con **aprobación humana obligatoria**: un ticket en `PENDING_APPROVAL` solo pasa a `RESOLVED` cuando un SUPERVISOR/ADMIN aprueba la acción propuesta (`/api/audit-logs`); si la rechaza, vuelve a `IN_PROGRESS`.
 - **Autorización por rol**: TECHNICIAN / SUPERVISOR / ADMIN / EMPLOYEE.
-
-## Capturas
-
-| Login | Listado de incidencias |
-|---|---|
-| ![Login](docs/screenshots/01-login.jpg) | ![Listado de incidencias](docs/screenshots/02-listado-incidencias.jpg) |
-
-| Cola de aprobaciones | Detalle con clasificación IA |
-|---|---|
-| ![Cola de aprobaciones](docs/screenshots/03-cola-aprobaciones.jpg) | ![Detalle de incidencia con clasificación IA](docs/screenshots/04-detalle-clasificacion-ia.jpg) |
-
-| Mis tickets (rol Empleado) |
-|---|
-| ![Mis tickets](docs/screenshots/05-mis-tickets.jpg) |
 
 ## Contacto
 
