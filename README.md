@@ -94,7 +94,7 @@ Más detalle en [`frontend/README.md`](frontend/README.md).
 
 ## Usuarios de prueba
 
-El seed de desarrollo (`DataSeeder`, solo activo con el perfil `dev`) crea estos usuarios con contraseña conocida. Iniciá sesión en `http://localhost:4200` con cualquiera de estos correos para probar los distintos roles:
+El seed de desarrollo (`DataSeeder`, solo activo con el perfil `dev`) crea estos usuarios con contraseña conocida. Inicia sesión en `http://localhost:4200` con cualquiera de estos correos para probar los distintos roles:
 
 | Rol | Nombre | Email | Contraseña |
 |---|---|---|---|
